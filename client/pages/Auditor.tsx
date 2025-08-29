@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import AuthGate, { withAuthHeaders } from "@/components/auth/AuthGate";
 
 export default function Auditor() {
   const [projectId, setProjectId] = useState("DEMO-PROJ-001");
