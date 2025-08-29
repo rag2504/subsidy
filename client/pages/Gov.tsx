@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import AuthGate, { withAuthHeaders } from "@/components/auth/AuthGate";
+import { getToken } from "@/lib/auth";
 
 export default function Gov() {
   return (
@@ -41,7 +42,7 @@ function Programs() {
 function PendingProjects() {
   const [list, setList] = useState<any[]>([]);
   const load = () => fetch("/api/gov/projects?status=pending", withAuthHeaders()).then((r) => r.json()).then(setList);
-  useEffect(() => { load(); }, []);
+  useEffect(() => { if (getToken()) load(); }, []);
   return (
     <section className="rounded-xl border bg-card p-6 shadow-sm">
       <h2 className="font-semibold">Pending Projects</h2>
