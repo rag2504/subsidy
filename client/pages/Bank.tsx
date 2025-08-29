@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import AuthGate, { withAuthHeaders } from "@/components/auth/AuthGate";
+import { getToken } from "@/lib/auth";
 
 export default function Bank() {
   const [queue, setQueue] = useState<any[]>([]);
   const load = () => fetch("/api/bank/queue", withAuthHeaders()).then((r) => r.json()).then(setQueue);
-  useEffect(() => { load(); }, []);
+  useEffect(() => { if (getToken()) load(); }, []);
 
   return (
     <AuthGate requiredRole="bank">
