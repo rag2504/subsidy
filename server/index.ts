@@ -32,5 +32,9 @@ export function createServer() {
   app.post("/api/cashfree/order", createOrder);
   app.post("/api/cashfree/webhook", webhook);
 
+  // Demo seed and explorer
+  app.post("/api/seed", seedDemo);
+  app.get("/api/explorer/project/:id", getProjectTimeline);
+
   return app;
 }
