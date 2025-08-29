@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import AuthGate, { withAuthHeaders } from "@/components/auth/AuthGate";
-import { getToken } from "@/lib/auth";
+import { getToken, getRole, clearToken } from "@/lib/auth";
 
 export default function Gov() {
   return (
@@ -20,33 +20,74 @@ export default function Gov() {
   );
 }
 
+
+
 function Programs() {
   const [name, setName] = useState("Green H₂ Pilot 2025");
   const [programs, setPrograms] = useState<any[]>([]);
-  const load = () =>
-    fetch("/api/gov/programs")
-      .then((r) => r.json())
-      .then(setPrograms);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  
+  const load = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch("/api/gov/programs");
+      
+      if (!response.ok) {
+        setError(`Failed to load programs: ${response.status}`);
+        setPrograms([]);
+        return;
+      }
+      
+      const data = await response.json();
+      setPrograms(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError("Failed to load programs");
+      setPrograms([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   useEffect(() => {
     load();
   }, []);
+  
   return (
     <section className="rounded-xl border bg-card p-6 shadow-sm">
       <h2 className="font-semibold">Programs</h2>
+      
+      {error && (
+        <div className="text-sm text-red-600 mt-2 p-2 bg-red-50 rounded border">
+          {error}
+        </div>
+      )}
+      
+      {loading && (
+        <div className="text-sm text-muted-foreground mt-2">
+          Loading programs...
+        </div>
+      )}
+      
       <form
         className="mt-3 flex gap-2"
         onSubmit={async (e) => {
           e.preventDefault();
-          await fetch(
-            "/api/gov/programs",
-            withAuthHeaders({
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ name }),
-            }),
-          );
-          setName("");
-          load();
+          try {
+            await fetch(
+              "/api/gov/programs",
+              withAuthHeaders({
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name }),
+              }),
+            );
+            setName("");
+            load();
+          } catch (err) {
+            setError("Failed to create program");
+          }
         }}
       >
         <input
@@ -57,61 +98,131 @@ function Programs() {
         />
         <Button type="submit">Create</Button>
       </form>
-      <ul className="mt-3 grid gap-2 md:grid-cols-3">
-        {programs.map((p) => (
-          <li key={p.id} className="rounded-md border p-3 text-sm">
-            <div className="font-medium">{p.name}</div>
-            <div className="text-muted-foreground">id: {p.id}</div>
-          </li>
-        ))}
-      </ul>
+      
+      {!loading && !error && programs.length === 0 && (
+        <div className="text-sm text-muted-foreground mt-3">
+          No programs created yet.
+        </div>
+      )}
+      
+      {!loading && !error && programs.length > 0 && (
+        <ul className="mt-3 grid gap-2 md:grid-cols-3">
+          {programs.map((p) => (
+            <li key={p.id || `program-${p.name}`} className="rounded-md border p-3 text-sm">
+              <div className="font-medium">{p.name}</div>
+              <div className="text-muted-foreground">id: {p.id}</div>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
 
 function PendingProjects() {
   const [list, setList] = useState<any[]>([]);
-  const load = () =>
-    fetch("/api/gov/projects?status=pending", withAuthHeaders())
-      .then((r) => r.json())
-      .then(setList);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  
+  const load = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Check if user is authenticated
+      const token = getToken();
+      if (!token) {
+        setError("Please sign in as a government user");
+        setList([]);
+        return;
+      }
+      
+      const response = await fetch("/api/gov/projects?status=pending", withAuthHeaders());
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          setError("Authentication failed. Please sign in again as a government user.");
+        } else {
+          setError(`Failed to load projects: ${response.status}`);
+        }
+        setList([]);
+        return;
+      }
+      
+      const data = await response.json();
+      setList(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Error loading projects:", err);
+      setError("Failed to load projects");
+      setList([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   useEffect(() => {
-    if (getToken()) load();
+    const token = getToken();
+    if (token) {
+      load();
+    } else {
+      setError("Please sign in as a government user");
+    }
   }, []);
+  
   return (
     <section className="rounded-xl border bg-card p-6 shadow-sm">
       <h2 className="font-semibold">Pending Projects</h2>
-      {list.length === 0 && (
+      
+      {error && (
+        <div className="text-sm text-red-600 mt-2 p-2 bg-red-50 rounded border">
+          {error}
+        </div>
+      )}
+      
+      {loading && (
+        <div className="text-sm text-muted-foreground mt-2">
+          Loading projects...
+        </div>
+      )}
+      
+      {!loading && !error && list.length === 0 && (
         <div className="text-sm text-muted-foreground mt-2">
           No pending projects.
         </div>
       )}
-      <ul className="mt-3 grid gap-2">
-        {list.map((p) => (
-          <li
-            key={p.id}
-            className="flex items-center justify-between rounded-md border p-3 text-sm"
-          >
-            <div>
-              <div className="font-medium">
-                {p.name} <span className="text-muted-foreground">({p.id})</span>
-              </div>
-              <div className="text-muted-foreground">Program: {p.program}</div>
-            </div>
-            <Button
-              onClick={async () => {
-                await fetch(
-                  `/api/gov/projects/${p.id}/approve`,
-                  withAuthHeaders({ method: "POST" }),
-                );
-                load();
-              }}
+      
+      {!loading && !error && list.length > 0 && (
+        <ul className="mt-3 grid gap-2">
+          {list.map((p) => (
+            <li
+              key={p.id || `project-${p.name}`}
+              className="flex items-center justify-between rounded-md border p-3 text-sm"
             >
-              Approve
-            </Button>
-          </li>
-        ))}
-      </ul>
+              <div>
+                <div className="font-medium">
+                  {p.name} <span className="text-muted-foreground">({p.id})</span>
+                </div>
+                <div className="text-muted-foreground">Program: {p.program}</div>
+              </div>
+              <Button
+                onClick={async () => {
+                  try {
+                    await fetch(
+                      `/api/gov/projects/${p.id}/approve`,
+                      withAuthHeaders({ method: "POST" }),
+                    );
+                    load();
+                  } catch (err) {
+                    setError("Failed to approve project");
+                  }
+                }}
+              >
+                Approve
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
@@ -124,47 +235,83 @@ function Milestones() {
   const [amount, setAmount] = useState("10000");
   const [unit, setUnit] = useState("MWh");
   const [list, setList] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  
   useEffect(() => {
     fetch("/api/gov/programs")
       .then((r) => r.json())
       .then((ps) => {
-        setPrograms(ps);
-        if (ps[0]) setProgramId(ps[0].id);
-      });
+        setPrograms(Array.isArray(ps) ? ps : []);
+        if (ps && ps[0]) setProgramId(ps[0].id);
+      })
+      .catch(() => setPrograms([]));
   }, []);
+  
   useEffect(() => {
-    if (programId)
+    if (programId) {
+      setLoading(true);
+      setError(null);
       fetch(`/api/gov/milestones?programId=${programId}`)
         .then((r) => r.json())
-        .then(setList);
+        .then((data) => {
+          setList(Array.isArray(data) ? data : []);
+        })
+        .catch(() => {
+          setList([]);
+          setError("Failed to load milestones");
+        })
+        .finally(() => setLoading(false));
+    }
   }, [programId]);
+  
   return (
     <section className="rounded-xl border bg-card p-6 shadow-sm">
       <h2 className="font-semibold">Milestones</h2>
+      
+      {error && (
+        <div className="text-sm text-red-600 mt-2 p-2 bg-red-50 rounded border">
+          {error}
+        </div>
+      )}
+      
+      {loading && (
+        <div className="text-sm text-muted-foreground mt-2">
+          Loading milestones...
+        </div>
+      )}
+      
       <form
         className="mt-3 grid gap-2 md:grid-cols-5"
         onSubmit={async (e) => {
           e.preventDefault();
-          await fetch(
-            "/api/gov/milestones",
-            withAuthHeaders({
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                programId,
-                key,
-                title,
-                amount: Number(amount),
-                unit,
+          try {
+            await fetch(
+              "/api/gov/milestones",
+              withAuthHeaders({
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  programId,
+                  key,
+                  title,
+                  amount: Number(amount),
+                  unit,
+                }),
               }),
-            }),
-          );
-          setKey("");
-          setTitle("");
-          setAmount("");
-          fetch(`/api/gov/milestones?programId=${programId}`)
-            .then((r) => r.json())
-            .then(setList);
+            );
+            setKey("");
+            setTitle("");
+            setAmount("");
+            // Reload milestones
+            if (programId) {
+              const response = await fetch(`/api/gov/milestones?programId=${programId}`);
+              const data = await response.json();
+              setList(Array.isArray(data) ? data : []);
+            }
+          } catch (err) {
+            setError("Failed to create milestone");
+          }
         }}
       >
         <select
@@ -173,7 +320,7 @@ function Milestones() {
           onChange={(e) => setProgramId(e.target.value)}
         >
           {programs.map((p) => (
-            <option key={p.id} value={p.id}>
+            <option key={p.id || `program-${p.name}`} value={p.id}>
               {p.name}
             </option>
           ))}
@@ -202,22 +349,28 @@ function Milestones() {
           value={unit}
           onChange={(e) => setUnit(e.target.value)}
         />
-        <div className="md:col-span-5">
-          <Button type="submit">Add Milestone</Button>
-        </div>
+        <Button type="submit">Create</Button>
       </form>
-      <ul className="mt-3 grid gap-2 md:grid-cols-3">
-        {list.map((m) => (
-          <li key={m.key} className="rounded-md border p-3 text-sm">
-            <div className="font-medium">
-              {m.key}: {m.title}
-            </div>
-            <div className="text-muted-foreground">
-              {m.amount} {m.unit}
-            </div>
-          </li>
-        ))}
-      </ul>
+      
+      {!loading && !error && list.length === 0 && (
+        <div className="text-sm text-muted-foreground mt-3">
+          No milestones defined for this program.
+        </div>
+      )}
+      
+      {!loading && !error && list.length > 0 && (
+        <ul className="mt-3 grid gap-2">
+          {list.map((m) => (
+            <li key={m.id || `milestone-${m.key}`} className="rounded-md border p-3 text-sm">
+              <div className="font-medium">{m.key}</div>
+              <div className="text-muted-foreground">{m.title}</div>
+              <div className="text-muted-foreground">
+                {m.amount} {m.unit}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

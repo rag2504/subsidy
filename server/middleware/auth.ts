@@ -1,7 +1,7 @@
 import type { RequestHandler } from "express";
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET || "dev-secret";
+const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-not-for-prod";
 
 export const authOptional: RequestHandler = (req, _res, next) => {
   const auth = req.headers.authorization;

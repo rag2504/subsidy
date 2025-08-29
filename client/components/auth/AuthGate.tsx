@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { authHeader, clearToken, getRole, setToken } from "@/lib/auth";
+import { authHeader, clearToken, getRole, setToken, getToken } from "@/lib/auth";
 
 export default function AuthGate({
   requiredRole,
@@ -12,9 +12,43 @@ export default function AuthGate({
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [status, setStatus] = useState<string | null>(null);
+  const [isValidToken, setIsValidToken] = useState<boolean | null>(null);
   const role = getRole();
+  const token = getToken();
 
-  if (role === requiredRole) {
+  // Check if token is valid by making a test API call
+  useEffect(() => {
+    if (token) {
+      fetch("/api/auth/me", {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then(response => {
+        if (response.ok) {
+          setIsValidToken(true);
+        } else {
+          setIsValidToken(false);
+          clearToken(); // Clear invalid token
+        }
+      })
+      .catch(() => {
+        setIsValidToken(false);
+        clearToken(); // Clear invalid token
+      });
+    } else {
+      setIsValidToken(false);
+    }
+  }, [token]);
+
+  // Show loading while checking token validity
+  if (isValidToken === null) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-sm text-muted-foreground">Checking authentication...</div>
+      </div>
+    );
+  }
+
+  if (token && isValidToken && role === requiredRole) {
     return (
       <div className="space-y-4">
         <div className="rounded-md border bg-card p-3 text-sm text-muted-foreground flex items-center justify-between">
@@ -40,6 +74,23 @@ export default function AuthGate({
   return (
     <section className="rounded-xl border bg-card p-6 shadow-sm">
       <h2 className="font-semibold">Sign in as {requiredRole}</h2>
+      
+             {/* Debug info */}
+       <div className="mb-4 p-2 bg-gray-50 rounded text-xs">
+         <div>Debug: Token present: {token ? "Yes" : "No"}</div>
+         <div>Debug: Token valid: {isValidToken === null ? "Checking..." : isValidToken ? "Yes" : "No"}</div>
+         <div>Debug: Current role: {role || "None"}</div>
+         <div>Debug: Required role: {requiredRole}</div>
+         <button
+           className="text-blue-600 underline mt-2 block"
+           onClick={() => {
+             clearToken();
+             location.reload();
+           }}
+         >
+           Clear token & reload
+         </button>
+       </div>
       <form
         className="mt-3 grid gap-2 md:grid-cols-3"
         onSubmit={async (e) => {
