@@ -27,7 +27,7 @@ export default function AuthGate({ requiredRole, children }: { requiredRole: str
         <input className="rounded-md border px-3 py-2 text-sm" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
         <div className="flex gap-2">
           <input className="w-full rounded-md border px-3 py-2 text-sm" placeholder="OTP" value={otp} onChange={(e) => setOtp(e.target.value)} />
-          <Button type="button" onClick={async () => { setStatus(null); const r = await fetch("/api/auth/request-otp", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) }); setStatus(r.ok ? "OTP sent" : "Failed to send OTP"); }}>Send OTP</Button>
+          <Button type="button" onClick={async () => { setStatus(null); const r = await fetch("/api/auth/request-otp", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) }); const data = await r.json().catch(() => ({} as any)); if (r.ok) { setStatus(data.devOtp ? `OTP sent (Dev OTP: ${data.devOtp})` : "OTP sent"); if ((data as any).devOtp) setOtp((data as any).devOtp); } else { setStatus("Failed to send OTP"); } }}>Send OTP</Button>
         </div>
         <Button type="button" onClick={async () => { setStatus(null); const r = await fetch("/api/auth/verify-otp", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, otp, role: requiredRole }) }); const data = await r.json().catch(() => null); if (data?.token) { setToken(data.token); setStatus("Signed in"); location.reload(); } else { setStatus("Invalid OTP"); } }}>Verify & Sign in</Button>
       </form>
