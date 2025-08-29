@@ -4,6 +4,8 @@ import cors from "cors";
 import { handleDemo } from "./routes/demo";
 import { requestOtp, verifyOtp, me } from "./routes/auth";
 import { createOrder, webhook } from "./routes/cashfree";
+import { seedDemo } from "./routes/seed";
+import { getProjectTimeline } from "./routes/explorer";
 
 export function createServer() {
   const app = express();
