@@ -21,7 +21,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="container flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
             <Logo className="h-7 w-7" />
-            <span className="text-lg font-extrabold tracking-tight">GH₂ SubsidyFlow</span>
+            <span className="text-lg font-extrabold tracking-tight">
+              GH₂ SubsidyFlow
+            </span>
           </Link>
           <nav className="hidden items-center gap-1 md:flex">
             {nav.map((n) => (
@@ -83,8 +85,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <span>GH₂ SubsidyFlow</span>
           </div>
           <div className="flex gap-4">
-            <Link to="/explorer" className="hover:text-foreground">Audit Explorer</Link>
-            <a href="https://builder.io/c/docs/projects" target="_blank" rel="noreferrer" className="hover:text-foreground">Docs</a>
+            <Link to="/explorer" className="hover:text-foreground">
+              Audit Explorer
+            </Link>
+            <a
+              href="https://builder.io/c/docs/projects"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-foreground"
+            >
+              Docs
+            </a>
           </div>
         </div>
       </footer>
@@ -102,7 +113,13 @@ function Logo({ className }: { className?: string }) {
         </linearGradient>
       </defs>
       <rect x="4" y="4" width="40" height="40" rx="9" fill="url(#g)" />
-      <path d="M12 30c7 0 7-12 14-12 7 0 7 12 14 12" fill="none" stroke="hsl(var(--primary-foreground))" strokeWidth="2.5" strokeLinecap="round" />
+      <path
+        d="M12 30c7 0 7-12 14-12 7 0 7 12 14 12"
+        fill="none"
+        stroke="hsl(var(--primary-foreground))"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
       <circle cx="24" cy="24" r="3.5" fill="hsl(var(--primary-foreground))" />
     </svg>
   );

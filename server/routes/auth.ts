@@ -22,17 +22,25 @@ export const requestOtp: RequestHandler = async (req, res) => {
 };
 
 export const verifyOtp: RequestHandler = async (req, res) => {
-  const { email, otp, role } = req.body as { email?: string; otp?: string; role?: string };
-  if (!email || !otp) return res.status(400).json({ error: "email and otp required" });
+  const { email, otp, role } = req.body as {
+    email?: string;
+    otp?: string;
+    role?: string;
+  };
+  if (!email || !otp)
+    return res.status(400).json({ error: "email and otp required" });
   const ok = otpStore.verify(email, otp);
   if (!ok) return res.status(401).json({ error: "invalid otp" });
-  const token = jwt.sign({ sub: email, role: role || "user" }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+  const token = jwt.sign({ sub: email, role: role || "user" }, JWT_SECRET, {
+    expiresIn: JWT_EXPIRES_IN,
+  });
   res.json({ token });
 };
 
 export const me: RequestHandler = (req, res) => {
   const auth = req.headers.authorization;
-  if (!auth?.startsWith("Bearer ")) return res.status(401).json({ error: "missing token" });
+  if (!auth?.startsWith("Bearer "))
+    return res.status(401).json({ error: "missing token" });
   const token = auth.slice(7);
   try {
     const payload = jwt.verify(token, JWT_SECRET);

@@ -15,5 +15,11 @@ export const getProjectTimeline: RequestHandler = async (req, res) => {
     .project({ _id: 0 })
     .toArray();
 
-  res.json({ id, program: project.program, project: project.name, status: project.status, items });
+  res.json({
+    id,
+    program: project.program,
+    project: project.name,
+    status: project.status,
+    items,
+  });
 };

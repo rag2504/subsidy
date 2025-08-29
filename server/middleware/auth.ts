@@ -16,7 +16,8 @@ export const authOptional: RequestHandler = (req, _res, next) => {
 
 export const authRequired: RequestHandler = (req, res, next) => {
   const auth = req.headers.authorization;
-  if (!auth?.startsWith("Bearer ")) return res.status(401).json({ error: "missing token" });
+  if (!auth?.startsWith("Bearer "))
+    return res.status(401).json({ error: "missing token" });
   const token = auth.slice(7);
   try {
     (req as any).user = jwt.verify(token, JWT_SECRET);
@@ -26,9 +27,12 @@ export const authRequired: RequestHandler = (req, res, next) => {
   }
 };
 
-export const requireRole = (roles: string[]): RequestHandler => (req, res, next) => {
-  const user = (req as any).user;
-  if (!user) return res.status(401).json({ error: "unauthenticated" });
-  if (!roles.includes(user.role)) return res.status(403).json({ error: "forbidden" });
-  next();
-};
+export const requireRole =
+  (roles: string[]): RequestHandler =>
+  (req, res, next) => {
+    const user = (req as any).user;
+    if (!user) return res.status(401).json({ error: "unauthenticated" });
+    if (!roles.includes(user.role))
+      return res.status(403).json({ error: "forbidden" });
+    next();
+  };

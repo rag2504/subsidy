@@ -5,9 +5,17 @@ const CF_ID = process.env.CASHFREE_APP_ID || "";
 const CF_SECRET = process.env.CASHFREE_SECRET_KEY || "";
 
 export const createOrder: RequestHandler = async (req, res) => {
-  if (!CF_ID || !CF_SECRET) return res.status(500).json({ error: "Cashfree not configured" });
-  const { order_id, amount, currency = "INR", customer_email, customer_phone } = req.body as any;
-  if (!order_id || !amount || !customer_email) return res.status(400).json({ error: "missing fields" });
+  if (!CF_ID || !CF_SECRET)
+    return res.status(500).json({ error: "Cashfree not configured" });
+  const {
+    order_id,
+    amount,
+    currency = "INR",
+    customer_email,
+    customer_phone,
+  } = req.body as any;
+  if (!order_id || !amount || !customer_email)
+    return res.status(400).json({ error: "missing fields" });
 
   const body = {
     order_id,

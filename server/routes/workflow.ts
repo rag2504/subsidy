@@ -3,10 +3,18 @@ import { getCollection } from "../db/mongo";
 import { ObjectId } from "mongodb";
 
 function slugify(s: string) {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
 }
 
-async function logEvent(projectId: string, type: string, label: string, details?: any) {
+async function logEvent(
+  projectId: string,
+  type: string,
+  label: string,
+  details?: any,
+) {
   const events = await getCollection("events");
   await events.insertOne({ projectId, ts: new Date(), type, label, details });
 }
@@ -29,11 +37,23 @@ export const listPrograms: RequestHandler = async (_req, res) => {
 };
 
 export const applyProject: RequestHandler = async (req, res) => {
-  const { programId, name, email } = req.body as { programId?: string; name?: string; email?: string };
-  if (!programId || !name) return res.status(400).json({ error: "programId and name required" });
+  const { programId, name, email } = req.body as {
+    programId?: string;
+    name?: string;
+    email?: string;
+  };
+  if (!programId || !name)
+    return res.status(400).json({ error: "programId and name required" });
   const projects = await getCollection("projects");
   const id = `${slugify(name)}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-  await projects.insertOne({ id, program: programId, name, status: "pending", email, createdAt: new Date() });
+  await projects.insertOne({
+    id,
+    program: programId,
+    name,
+    status: "pending",
+    email,
+    createdAt: new Date(),
+  });
   res.json({ id, programId, name, status: "pending" });
 };
 
@@ -58,11 +78,19 @@ export const approveProject: RequestHandler = async (req, res) => {
 
 export const defineMilestone: RequestHandler = async (req, res) => {
   const { programId, key, title, amount, unit } = req.body as any;
-  if (!programId || !key || !title) return res.status(400).json({ error: "programId, key, title required" });
+  if (!programId || !key || !title)
+    return res.status(400).json({ error: "programId, key, title required" });
   const milestones = await getCollection("milestones");
   const exists = await milestones.findOne({ programId, key });
   if (exists) return res.status(409).json({ error: "milestone exists" });
-  await milestones.insertOne({ programId, key, title, amount, unit, createdAt: new Date() });
+  await milestones.insertOne({
+    programId,
+    key,
+    title,
+    amount,
+    unit,
+    createdAt: new Date(),
+  });
   res.json({ ok: true });
 };
 
@@ -76,32 +104,61 @@ export const listMilestones: RequestHandler = async (req, res) => {
 };
 
 export const submitAttestation: RequestHandler = async (req, res) => {
-  const { projectId, milestoneKey, value, unit, dataHash, signer } = req.body as any;
-  if (!projectId || !milestoneKey || value === undefined) return res.status(400).json({ error: "missing fields" });
+  const { projectId, milestoneKey, value, unit, dataHash, signer } =
+    req.body as any;
+  if (!projectId || !milestoneKey || value === undefined)
+    return res.status(400).json({ error: "missing fields" });
   const attestations = await getCollection("attestations");
   const once = await attestations.findOne({ projectId, milestoneKey });
   if (once) return res.status(409).json({ error: "already attested" });
-  await attestations.insertOne({ projectId, milestoneKey, value, unit, dataHash, signer, createdAt: new Date() });
-  await logEvent(projectId, "attested", "Auditor Attested (EIP-712)", { value, unit, dataHash });
+  await attestations.insertOne({
+    projectId,
+    milestoneKey,
+    value,
+    unit,
+    dataHash,
+    signer,
+    createdAt: new Date(),
+  });
+  await logEvent(projectId, "attested", "Auditor Attested (EIP-712)", {
+    value,
+    unit,
+    dataHash,
+  });
   res.json({ ok: true });
 };
 
 export const triggerRelease: RequestHandler = async (req, res) => {
   const { projectId, milestoneKey, amount, rail } = req.body as any; // rail: 'bank' | 'onchain'
-  if (!projectId || !milestoneKey || !amount) return res.status(400).json({ error: "missing fields" });
+  if (!projectId || !milestoneKey || !amount)
+    return res.status(400).json({ error: "missing fields" });
   const disb = await getCollection("disbursements");
   const exists = await disb.findOne({ projectId, milestoneKey });
   if (exists) return res.status(409).json({ error: "already released/queued" });
-  const doc = { projectId, milestoneKey, amount: Number(amount), rail: rail || "bank", status: "queued", createdAt: new Date() };
+  const doc = {
+    projectId,
+    milestoneKey,
+    amount: Number(amount),
+    rail: rail || "bank",
+    status: "queued",
+    createdAt: new Date(),
+  };
   const { insertedId } = await disb.insertOne(doc);
-  await logEvent(projectId, "release_queued", `Release queued for ${milestoneKey}`, { amount, rail, disbursementId: insertedId.toString() });
+  await logEvent(
+    projectId,
+    "release_queued",
+    `Release queued for ${milestoneKey}`,
+    { amount, rail, disbursementId: insertedId.toString() },
+  );
   res.json({ id: insertedId.toString(), ...doc });
 };
 
 export const bankQueue: RequestHandler = async (_req, res) => {
   const disb = await getCollection("disbursements");
   const list = await disb.find({ rail: "bank", status: "queued" }).toArray();
-  res.json(list.map((d) => ({ ...d, id: (d as any)._id.toString(), _id: undefined })));
+  res.json(
+    list.map((d) => ({ ...d, id: (d as any)._id.toString(), _id: undefined })),
+  );
 };
 
 export const bankApprove: RequestHandler = async (req, res) => {
@@ -111,8 +168,18 @@ export const bankApprove: RequestHandler = async (req, res) => {
   const _id = new ObjectId(id);
   const doc = await disb.findOne({ _id });
   if (!doc) return res.status(404).json({ error: "not found" });
-  await disb.updateOne({ _id }, { $set: { status: "released", bankRefOrTx: bankRef || `BANK-${Date.now()}` } });
-  await logEvent(doc.projectId, "released", "Payment Released", { bankRefOrTx: bankRef || `BANK-${Date.now()}` });
+  await disb.updateOne(
+    { _id },
+    {
+      $set: {
+        status: "released",
+        bankRefOrTx: bankRef || `BANK-${Date.now()}`,
+      },
+    },
+  );
+  await logEvent(doc.projectId, "released", "Payment Released", {
+    bankRefOrTx: bankRef || `BANK-${Date.now()}`,
+  });
   res.json({ ok: true });
 };
 
@@ -125,7 +192,11 @@ export const revoke: RequestHandler = async (req, res) => {
 
 export const clawback: RequestHandler = async (req, res) => {
   const { projectId, amount, reason } = req.body as any;
-  if (!projectId || !amount) return res.status(400).json({ error: "projectId and amount required" });
-  await logEvent(projectId, "clawback", "Clawback initiated", { amount, reason });
+  if (!projectId || !amount)
+    return res.status(400).json({ error: "projectId and amount required" });
+  await logEvent(projectId, "clawback", "Clawback initiated", {
+    amount,
+    reason,
+  });
   res.json({ ok: true });
 };
