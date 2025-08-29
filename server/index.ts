@@ -6,6 +6,7 @@ import { requestOtp, verifyOtp, me } from "./routes/auth";
 import { createOrder, webhook } from "./routes/cashfree";
 import { seedDemo } from "./routes/seed";
 import { getProjectTimeline } from "./routes/explorer";
+import { createProgram, listPrograms, applyProject, listProjects, approveProject, defineMilestone, listMilestones, submitAttestation, triggerRelease, bankQueue, bankApprove, revoke, clawback } from "./routes/workflow";
 
 export function createServer() {
   const app = express();
@@ -35,6 +36,27 @@ export function createServer() {
   // Demo seed and explorer
   app.post("/api/seed", seedDemo);
   app.get("/api/explorer/project/:id", getProjectTimeline);
+
+  // Gov Admin
+  app.post("/api/gov/programs", createProgram);
+  app.get("/api/gov/programs", listPrograms);
+  app.get("/api/gov/projects", listProjects);
+  app.post("/api/gov/projects/:id/approve", approveProject);
+  app.post("/api/gov/milestones", defineMilestone);
+  app.get("/api/gov/milestones", listMilestones);
+  app.post("/api/gov/release", triggerRelease);
+  app.post("/api/gov/revoke", revoke);
+  app.post("/api/gov/clawback", clawback);
+
+  // Producer
+  app.post("/api/producer/projects", applyProject);
+
+  // Auditor
+  app.post("/api/auditor/attest", submitAttestation);
+
+  // Bank Ops
+  app.get("/api/bank/queue", bankQueue);
+  app.post("/api/bank/approve", bankApprove);
 
   return app;
 }
