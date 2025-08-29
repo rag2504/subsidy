@@ -24,7 +24,7 @@ export const verifyOtp: RequestHandler = async (req, res) => {
   if (!email || !otp) return res.status(400).json({ error: "email and otp required" });
   const ok = otpStore.verify(email, otp);
   if (!ok) return res.status(401).json({ error: "invalid otp" });
-  const token = jwt.sign({ sub: email, role: role || "user" }, JWT_SECRET, { expiresIn: "1d" });
+  const token = jwt.sign({ sub: email, role: role || "user" }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
   res.json({ token });
 };
 
