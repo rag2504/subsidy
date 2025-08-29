@@ -7,6 +7,7 @@ import { createOrder, webhook } from "./routes/cashfree";
 import { seedDemo } from "./routes/seed";
 import { getProjectTimeline } from "./routes/explorer";
 import { createProgram, listPrograms, applyProject, listProjects, approveProject, defineMilestone, listMilestones, submitAttestation, triggerRelease, bankQueue, bankApprove, revoke, clawback } from "./routes/workflow";
+import { authOptional, authRequired, requireRole } from "./middleware/auth";
 
 export function createServer() {
   const app = express();
