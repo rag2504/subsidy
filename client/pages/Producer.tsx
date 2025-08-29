@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import AuthGate, { withAuthHeaders } from "@/components/auth/AuthGate";
 
 export default function Producer() {
   const [name, setName] = useState("");
