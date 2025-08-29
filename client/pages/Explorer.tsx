@@ -10,7 +10,7 @@ type TimelineItem = {
 const DEMO_PROJECT_ID = "DEMO-PROJ-001";
 
 export default function Explorer() {
-  const [qid, setQid] = useState("");
+  const [qid, setQid] = useState(DEMO_PROJECT_ID);
   const [query, setQuery] = useState<string | null>(null);
   const [remote, setRemote] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
