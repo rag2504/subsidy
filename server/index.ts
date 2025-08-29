@@ -37,26 +37,32 @@ export function createServer() {
   app.post("/api/seed", seedDemo);
   app.get("/api/explorer/project/:id", getProjectTimeline);
 
-  // Gov Admin
-  app.post("/api/gov/programs", createProgram);
+  // Public reads
   app.get("/api/gov/programs", listPrograms);
-  app.get("/api/gov/projects", listProjects);
-  app.post("/api/gov/projects/:id/approve", approveProject);
-  app.post("/api/gov/milestones", defineMilestone);
   app.get("/api/gov/milestones", listMilestones);
-  app.post("/api/gov/release", triggerRelease);
-  app.post("/api/gov/revoke", revoke);
-  app.post("/api/gov/clawback", clawback);
+
+  // Protected routes
+  const { authOptional, authRequired, requireRole } = await import("./middleware/auth");
+  app.use("/api", authOptional);
+
+  // Gov Admin
+  app.post("/api/gov/programs", authRequired, requireRole(["gov"]), createProgram);
+  app.get("/api/gov/projects", authRequired, requireRole(["gov"]), listProjects);
+  app.post("/api/gov/projects/:id/approve", authRequired, requireRole(["gov"]), approveProject);
+  app.post("/api/gov/milestones", authRequired, requireRole(["gov"]), defineMilestone);
+  app.post("/api/gov/release", authRequired, requireRole(["gov"]), triggerRelease);
+  app.post("/api/gov/revoke", authRequired, requireRole(["gov"]), revoke);
+  app.post("/api/gov/clawback", authRequired, requireRole(["gov"]), clawback);
 
   // Producer
-  app.post("/api/producer/projects", applyProject);
+  app.post("/api/producer/projects", authRequired, requireRole(["producer"]), applyProject);
 
   // Auditor
-  app.post("/api/auditor/attest", submitAttestation);
+  app.post("/api/auditor/attest", authRequired, requireRole(["auditor"]), submitAttestation);
 
   // Bank Ops
-  app.get("/api/bank/queue", bankQueue);
-  app.post("/api/bank/approve", bankApprove);
+  app.get("/api/bank/queue", authRequired, requireRole(["bank"]), bankQueue);
+  app.post("/api/bank/approve", authRequired, requireRole(["bank"]), bankApprove);
 
   return app;
 }
