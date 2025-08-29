@@ -2,6 +2,8 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { handleDemo } from "./routes/demo";
+import { requestOtp, verifyOtp, me } from "./routes/auth";
+import { createOrder, webhook } from "./routes/cashfree";
 
 export function createServer() {
   const app = express();
@@ -18,6 +20,15 @@ export function createServer() {
   });
 
   app.get("/api/demo", handleDemo);
+
+  // Auth OTP + JWT
+  app.post("/api/auth/request-otp", requestOtp);
+  app.post("/api/auth/verify-otp", verifyOtp);
+  app.get("/api/auth/me", me);
+
+  // Cashfree payment gateway
+  app.post("/api/cashfree/order", createOrder);
+  app.post("/api/cashfree/webhook", webhook);
 
   return app;
 }
