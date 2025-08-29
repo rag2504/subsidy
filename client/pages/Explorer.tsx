@@ -16,7 +16,9 @@ export default function Explorer() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/seed", { method: "POST" }).catch(() => {});
+    fetch("/api/seed", { method: "POST" })
+      .then(() => setQuery(DEMO_PROJECT_ID))
+      .catch(() => setQuery(DEMO_PROJECT_ID));
   }, []);
 
   useEffect(() => {
