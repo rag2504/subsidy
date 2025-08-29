@@ -1,10 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 type TimelineItem = {
   ts: string;
   label: string;
-  details?: string;
+  details?: any;
 };
 
 const DEMO_PROJECT_ID = "DEMO-PROJ-001";
@@ -12,24 +12,30 @@ const DEMO_PROJECT_ID = "DEMO-PROJ-001";
 export default function Explorer() {
   const [qid, setQid] = useState("");
   const [query, setQuery] = useState<string | null>(null);
+  const [remote, setRemote] = useState<any | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/seed", { method: "POST" }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!query) return;
+    setError(null);
+    setRemote(null);
+    fetch(`/api/explorer/project/${encodeURIComponent(query)}`)
+      .then(async (r) => {
+        if (!r.ok) throw new Error(await r.text());
+        return r.json();
+      })
+      .then(setRemote)
+      .catch(() => setError("Not found"));
+  }, [query]);
 
   const data = useMemo(() => {
-    if (query === DEMO_PROJECT_ID) {
-      const items: TimelineItem[] = [
-        { ts: "2025-01-10T09:00:00Z", label: "Program Created: Green H₂ Pilot 2025" },
-        { ts: "2025-01-18T15:20:00Z", label: "Project Approved: Electrolyzer Alpha" },
-        { ts: "2025-02-05T10:00:00Z", label: "Milestone M1 Defined: 10 MWh Renewable Input" },
-        { ts: "2025-03-01T11:30:00Z", label: "Auditor Attested (EIP-712)", details: "value=10, unit=MWh, dataHash=0xabc…" },
-        { ts: "2025-03-01T11:35:00Z", label: "Payment Released", details: "bankRefOrTx=BANK-REF-001" },
-        { ts: "2025-04-10T10:00:00Z", label: "Milestone M2 Defined: 250 Kg H₂ Produced" },
-        { ts: "2025-05-02T13:45:00Z", label: "Auditor Attested (EIP-712)", details: "value=250, unit=kgH2, dataHash=0xdef…" },
-        { ts: "2025-05-02T13:50:00Z", label: "Payment Released", details: "bankRefOrTx=BANK-REF-002" },
-      ];
-      return { id: query, program: "Green H₂ Pilot 2025", project: "Electrolyzer Alpha", status: "Active", items };
-    }
-    if (!query) return null;
-    return { id: query, program: "Unknown", project: "Not Found", status: "—", items: [] as TimelineItem[] };
-  }, [query]);
+    if (remote) return remote as { id: string; program: string; project: string; status: string; items: TimelineItem[] };
+    return null;
+  }, [remote]);
 
   return (
     <div className="space-y-8">
@@ -51,6 +57,7 @@ export default function Explorer() {
           />
           <Button type="submit" className="h-10 px-5">Search</Button>
         </form>
+        {error && <div className="mt-3 text-sm text-destructive">{error}</div>}
       </section>
 
       {data && (
@@ -72,7 +79,7 @@ export default function Explorer() {
               <li key={i} className="relative pl-8">
                 <span className="absolute left-0 top-1.5 h-2.5 w-2.5 rounded-full bg-primary" />
                 <div className="text-sm font-medium">{it.label}</div>
-                {it.details && <div className="text-sm text-muted-foreground">{it.details}</div>}
+                {it.details && <div className="text-sm text-muted-foreground">{formatDetails(it.details)}</div>}
                 <div className="text-xs text-muted-foreground/80">{new Date(it.ts).toLocaleString()}</div>
               </li>
             ))}
@@ -87,4 +94,15 @@ export default function Explorer() {
       )}
     </div>
   );
+}
+
+function formatDetails(d: any) {
+  if (typeof d === "string") return d;
+  try {
+    return Object.entries(d)
+      .map(([k, v]) => `${k}=${v}`)
+      .join(", ");
+  } catch {
+    return String(d);
+  }
 }
