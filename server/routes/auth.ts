@@ -6,6 +6,10 @@ import jwt from "jsonwebtoken";
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-not-for-prod";
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
 
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is required");
+}
+
 export const requestOtp: RequestHandler = async (req, res) => {
   const { email } = req.body as { email?: string };
   if (!email) return res.status(400).json({ error: "email required" });
@@ -33,7 +37,7 @@ export const verifyOtp: RequestHandler = async (req, res) => {
   if (!ok) return res.status(401).json({ error: "invalid otp" });
   const token = jwt.sign({ sub: email, role: role || "user" }, JWT_SECRET, {
     expiresIn: JWT_EXPIRES_IN,
-  });
+  } as jwt.SignOptions);
   res.json({ token });
 };
 

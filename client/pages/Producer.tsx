@@ -8,6 +8,7 @@ export default function Producer() {
   const [programs, setPrograms] = useState<any[]>([]);
   const [programId, setProgramId] = useState("");
   const [applied, setApplied] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch("/api/gov/programs")
@@ -15,6 +16,12 @@ export default function Producer() {
       .then((ps) => {
         setPrograms(ps);
         if (ps[0]) setProgramId(ps[0].id);
+      })
+      .catch((error) => {
+        console.error("Failed to fetch programs:", error);
+      })
+      .finally(() => {
+        setLoading(false);
       });
   }, []);
 
@@ -46,12 +53,19 @@ export default function Producer() {
               className="rounded-md border px-3 py-2 text-sm"
               value={programId}
               onChange={(e) => setProgramId(e.target.value)}
+              disabled={loading}
             >
-              {programs.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
+              {loading ? (
+                <option>Loading programs...</option>
+              ) : programs.length === 0 ? (
+                <option>No programs available</option>
+              ) : (
+                programs.map((p, index) => (
+                  <option key={p.id || index} value={p.id}>
+                    {p.name}
+                  </option>
+                ))
+              )}
             </select>
             <input
               className="rounded-md border px-3 py-2 text-sm"

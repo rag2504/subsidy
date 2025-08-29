@@ -3,6 +3,10 @@ import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-not-for-prod";
 
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is required");
+}
+
 export const authOptional: RequestHandler = (req, _res, next) => {
   const auth = req.headers.authorization;
   if (auth?.startsWith("Bearer ")) {

@@ -5,7 +5,7 @@ import { handleDemo } from "./routes/demo";
 import { requestOtp, verifyOtp, me } from "./routes/auth";
 import { createOrder, webhook } from "./routes/cashfree";
 import { seedDemo } from "./routes/seed";
-import { getProjectTimeline } from "./routes/explorer";
+import { getProjectTimeline, listAllProjects } from "./routes/explorer";
 import {
   createProgram,
   listPrograms,
@@ -50,6 +50,7 @@ export function createServer() {
 
   // Demo seed and explorer
   app.post("/api/seed", seedDemo);
+  app.get("/api/explorer/projects", listAllProjects);
   app.get("/api/explorer/project/:id", getProjectTimeline);
 
   // Public reads
