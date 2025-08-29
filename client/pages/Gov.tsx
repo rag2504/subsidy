@@ -1,16 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import AuthGate, { withAuthHeaders } from "@/components/auth/AuthGate";
 
 export default function Gov() {
   return (
-    <div className="space-y-8">
-      <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">Gov Admin Dashboard</h1>
-      <Programs />
-      <PendingProjects />
-      <Milestones />
-      <Release />
-      <Governance />
-    </div>
+    <AuthGate requiredRole="gov">
+      <div className="space-y-8">
+        <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">Gov Admin Dashboard</h1>
+        <Programs />
+        <PendingProjects />
+        <Milestones />
+        <Release />
+        <Governance />
+      </div>
+    </AuthGate>
   );
 }
 
