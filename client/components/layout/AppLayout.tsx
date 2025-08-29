@@ -44,7 +44,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             className="md:hidden inline-flex h-10 w-10 items-center justify-center rounded-md border border-border/70 hover:bg-muted"
             onClick={() => setOpen((v) => !v)}
           >
-            <div className="i-bar h-0.5 w-5 bg-foreground before:block before:h-0.5 before:w-5 before:bg-foreground before:translate-y-[-6px] after:block after:h-0.5 after:w-5 after:bg-foreground after:translate-y-[6px]" />
+            <div className="flex flex-col items-center justify-center gap-1.5">
+              <span className="block h-0.5 w-5 bg-foreground" />
+              <span className="block h-0.5 w-5 bg-foreground" />
+              <span className="block h-0.5 w-5 bg-foreground" />
+            </div>
           </button>
         </div>
         {open && (
