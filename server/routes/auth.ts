@@ -4,6 +4,7 @@ import { sendOtpEmail } from "../utils/mailer";
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-not-for-prod";
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
 
 export const requestOtp: RequestHandler = async (req, res) => {
   const { email } = req.body as { email?: string };
