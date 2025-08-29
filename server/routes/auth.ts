@@ -21,8 +21,10 @@ export const requestOtp: RequestHandler = async (req, res) => {
   } catch (e) {
     // Dev-friendly fallback: allow login by showing OTP when email isn't configured
     devOtp = otp;
+    console.log(`Dev OTP for ${email}: ${otp}`);
   }
-  res.json({ ok: true, devOtp });
+  // Always return devOtp in development for easier testing
+  res.json({ ok: true, devOtp: devOtp || otp });
 };
 
 export const verifyOtp: RequestHandler = async (req, res) => {

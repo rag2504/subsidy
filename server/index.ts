@@ -20,6 +20,8 @@ import {
   bankApprove,
   revoke,
   clawback,
+  getAuditorProjects,
+  getAuditorProject,
 } from "./routes/workflow";
 import { authOptional, authRequired, requireRole } from "./middleware/auth";
 
@@ -103,6 +105,18 @@ export function createServer() {
   );
 
   // Auditor
+  app.get(
+    "/api/auditor/projects",
+    authRequired,
+    requireRole(["auditor"]),
+    getAuditorProjects,
+  );
+  app.get(
+    "/api/auditor/projects/:id",
+    authRequired,
+    requireRole(["auditor"]),
+    getAuditorProject,
+  );
   app.post(
     "/api/auditor/attest",
     authRequired,

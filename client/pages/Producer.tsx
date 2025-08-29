@@ -37,16 +37,26 @@ export default function Producer() {
             className="mt-3 grid gap-2 md:grid-cols-4"
             onSubmit={async (e) => {
               e.preventDefault();
-              const r = await fetch(
-                "/api/producer/projects",
-                withAuthHeaders({
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ programId, name, email }),
-                }),
-              );
-              const data = await r.json();
-              setApplied(data);
+              try {
+                const r = await fetch(
+                  "/api/producer/projects",
+                  withAuthHeaders({
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ programId, name, email }),
+                  }),
+                );
+                const data = await r.json();
+                if (r.ok) {
+                  setApplied(data);
+                } else {
+                  console.error("Failed to apply:", data);
+                  setApplied({ error: data.error || "Failed to apply for project" });
+                }
+              } catch (error) {
+                console.error("Network error:", error);
+                setApplied({ error: "Network error. Please try again." });
+              }
             }}
           >
             <select
@@ -82,9 +92,16 @@ export default function Producer() {
             <Button type="submit">Apply</Button>
           </form>
           {applied && (
-            <div className="mt-3 text-sm text-muted-foreground">
-              Applied with ID: {applied.id}. Status: {applied.status}. Await Gov
-              approval.
+            <div className={`mt-3 text-sm p-3 rounded-md ${
+              applied.error 
+                ? "bg-red-50 text-red-700 border border-red-200" 
+                : "bg-green-50 text-green-700 border border-green-200"
+            }`}>
+              {applied.error ? (
+                `❌ Error: ${applied.error}`
+              ) : (
+                `✅ Applied with ID: ${applied.id}. Status: ${applied.status}. Await Gov approval.`
+              )}
             </div>
           )}
         </section>

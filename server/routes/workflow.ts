@@ -19,6 +19,58 @@ async function logEvent(
   await events.insertOne({ projectId, ts: new Date(), type, label, details });
 }
 
+// New endpoint for auditors to get available projects
+export const getAuditorProjects: RequestHandler = async (_req, res) => {
+  const projects = await getCollection("projects");
+  const programs = await getCollection("programs");
+  const milestones = await getCollection("milestones");
+  const attestations = await getCollection("attestations");
+
+  const projectList = await projects.find({ status: "approved" }).toArray();
+  
+  const projectsWithDetails = await Promise.all(
+    projectList.map(async (project) => {
+      const program = await programs.findOne({ id: project.program });
+      const projectMilestones = await milestones.find({ programId: project.program }).toArray();
+      const projectAttestations = await attestations.find({ projectId: project.id }).toArray();
+      
+      return {
+        ...project,
+        programName: program?.name || project.program,
+        milestones: projectMilestones,
+        attestations: projectAttestations,
+        _id: undefined
+      };
+    })
+  );
+  
+  res.json(projectsWithDetails);
+};
+
+// New endpoint for auditors to get project details
+export const getAuditorProject: RequestHandler = async (req, res) => {
+  const { id } = req.params;
+  const projects = await getCollection("projects");
+  const programs = await getCollection("programs");
+  const milestones = await getCollection("milestones");
+  const attestations = await getCollection("attestations");
+
+  const project = await projects.findOne({ id });
+  if (!project) return res.status(404).json({ error: "project not found" });
+
+  const program = await programs.findOne({ id: project.program });
+  const projectMilestones = await milestones.find({ programId: project.program }).toArray();
+  const projectAttestations = await attestations.find({ projectId: project.id }).toArray();
+
+  res.json({
+    ...project,
+    programName: program?.name || project.program,
+    milestones: projectMilestones,
+    attestations: projectAttestations,
+    _id: undefined
+  });
+};
+
 export const createProgram: RequestHandler = async (req, res) => {
   const { id, name } = req.body as { id?: string; name?: string };
   if (!name) return res.status(400).json({ error: "name required" });
@@ -108,9 +160,22 @@ export const submitAttestation: RequestHandler = async (req, res) => {
     req.body as any;
   if (!projectId || !milestoneKey || value === undefined)
     return res.status(400).json({ error: "missing fields" });
+  
+  // Validate project exists and is approved
+  const projects = await getCollection("projects");
+  const project = await projects.findOne({ id: projectId });
+  if (!project) return res.status(404).json({ error: "project not found" });
+  if (project.status !== "approved") return res.status(400).json({ error: "project not approved" });
+  
+  // Validate milestone exists
+  const milestones = await getCollection("milestones");
+  const milestone = await milestones.findOne({ programId: project.program, key: milestoneKey });
+  if (!milestone) return res.status(404).json({ error: "milestone not found" });
+  
   const attestations = await getCollection("attestations");
   const once = await attestations.findOne({ projectId, milestoneKey });
   if (once) return res.status(409).json({ error: "already attested" });
+  
   await attestations.insertOne({
     projectId,
     milestoneKey,

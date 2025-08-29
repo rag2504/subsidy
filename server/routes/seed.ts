@@ -4,16 +4,63 @@ import { getCollection } from "../db/mongo";
 export const seedDemo: RequestHandler = async (_req, res) => {
   const projects = await getCollection("projects");
   const events = await getCollection("events");
+  const programs = await getCollection("programs");
+  const milestones = await getCollection("milestones");
 
+  // Create program if it doesn't exist
+  const programId = "green-h2-pilot-2025";
+  const existingProgram = await programs.findOne({ id: programId });
+  if (!existingProgram) {
+    await programs.insertOne({
+      id: programId,
+      name: "Green H₂ Pilot 2025",
+      createdAt: new Date("2025-01-10T09:00:00Z"),
+    });
+  }
+
+  // Create project if it doesn't exist
   const id = "DEMO-PROJ-001";
   const exists = await projects.findOne({ id });
   if (!exists) {
     await projects.insertOne({
       id,
-      program: "Green H₂ Pilot 2025",
+      program: programId,
       name: "Electrolyzer Alpha",
-      status: "Active",
+      status: "approved",
+      email: "producer@example.com",
+      createdAt: new Date("2025-01-15T10:00:00Z"),
     });
+  }
+
+  // Create milestones if they don't exist
+  const existingMilestones = await milestones.countDocuments({ programId });
+  if (existingMilestones === 0) {
+    await milestones.insertMany([
+      {
+        programId,
+        key: "M1",
+        title: "10 MWh Renewable Input",
+        amount: 10000,
+        unit: "USD",
+        createdAt: new Date("2025-02-05T10:00:00Z"),
+      },
+      {
+        programId,
+        key: "M2",
+        title: "250 Kg H₂ Produced",
+        amount: 25000,
+        unit: "USD",
+        createdAt: new Date("2025-04-10T10:00:00Z"),
+      },
+      {
+        programId,
+        key: "M3",
+        title: "500 Kg H₂ Produced",
+        amount: 50000,
+        unit: "USD",
+        createdAt: new Date("2025-06-15T10:00:00Z"),
+      },
+    ]);
   }
 
   const haveEvents = await events.countDocuments({ projectId: id });
@@ -25,6 +72,12 @@ export const seedDemo: RequestHandler = async (_req, res) => {
         ts: new Date("2025-01-10T09:00:00Z"),
         type: "program_created",
         label: "Program Created: Green H₂ Pilot 2025",
+      },
+      {
+        projectId: id,
+        ts: new Date("2025-01-15T10:00:00Z"),
+        type: "project_created",
+        label: "Project Created: Electrolyzer Alpha",
       },
       {
         projectId: id,
