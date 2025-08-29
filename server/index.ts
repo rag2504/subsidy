@@ -42,8 +42,7 @@ export function createServer() {
   app.get("/api/gov/programs", listPrograms);
   app.get("/api/gov/milestones", listMilestones);
 
-  // Protected routes
-  const { authOptional, authRequired, requireRole } = await import("./middleware/auth");
+  // Auth attach (optional by default)
   app.use("/api", authOptional);
 
   // Gov Admin
