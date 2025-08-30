@@ -37,6 +37,22 @@ export function createServer() {
   app.use(express.urlencoded({ extended: true }));
 
   // Example API routes
+  app.get("/api", (_req, res) => {
+    res.json({ 
+      message: "Subsidy API", 
+      version: "1.0.0",
+      endpoints: {
+        health: "/api/ping",
+        auth: "/api/auth/*",
+        gov: "/api/gov/*",
+        producer: "/api/producer/*",
+        auditor: "/api/auditor/*",
+        bank: "/api/bank/*",
+        explorer: "/api/explorer/*"
+      }
+    });
+  });
+
   app.get("/api/ping", (_req, res) => {
     const ping = process.env.PING_MESSAGE ?? "ping";
     res.json({ message: ping });

@@ -123,14 +123,14 @@ function Approve({ id, onDone }: { id: string; onDone: () => void }) {
         setBusy(true);
         setError(null);
         try {
-          const response = await fetch(
-            "/api/bank/approve",
-            withAuthHeaders({
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ id, bankRef: ref }),
-            }),
-          );
+                     const response = await fetch(
+             apiUrl("/api/bank/approve"),
+             withAuthHeaders({
+               method: "POST",
+               headers: { "Content-Type": "application/json" },
+               body: JSON.stringify({ id, bankRef: ref }),
+             }),
+           );
           
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
