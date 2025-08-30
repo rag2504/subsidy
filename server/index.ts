@@ -29,7 +29,12 @@ export function createServer() {
   const app = express();
 
   // Middleware
-  app.use(cors());
+  app.use(cors({
+    origin: process.env.NODE_ENV === 'production' 
+      ? [process.env.FRONTEND_URL || 'https://your-frontend-domain.vercel.app', 'https://subsidy-oa4j.onrender.com']
+      : true,
+    credentials: true
+  }));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 

@@ -237,31 +237,57 @@ function Milestones() {
   const [list, setList] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
+  
+  const loadPrograms = async () => {
+    try {
+      const response = await fetch("/api/gov/programs");
+      if (!response.ok) {
+        setError("Failed to load programs");
+        setPrograms([]);
+        return;
+      }
+      const ps = await response.json();
+      const programsList = Array.isArray(ps) ? ps : [];
+      setPrograms(programsList);
+      if (programsList.length > 0) {
+        setProgramId(programsList[0].id);
+      }
+    } catch (err) {
+      setError("Failed to load programs");
+      setPrograms([]);
+    }
+  };
+  
+  const loadMilestones = async (pid: string) => {
+    if (!pid) return;
+    
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch(`/api/gov/milestones?programId=${pid}`);
+      if (!response.ok) {
+        setError("Failed to load milestones");
+        setList([]);
+        return;
+      }
+      const data = await response.json();
+      setList(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError("Failed to load milestones");
+      setList([]);
+    } finally {
+      setLoading(false);
+    }
+  };
   
   useEffect(() => {
-    fetch("/api/gov/programs")
-      .then((r) => r.json())
-      .then((ps) => {
-        setPrograms(Array.isArray(ps) ? ps : []);
-        if (ps && ps[0]) setProgramId(ps[0].id);
-      })
-      .catch(() => setPrograms([]));
+    loadPrograms();
   }, []);
   
   useEffect(() => {
     if (programId) {
-      setLoading(true);
-      setError(null);
-      fetch(`/api/gov/milestones?programId=${programId}`)
-        .then((r) => r.json())
-        .then((data) => {
-          setList(Array.isArray(data) ? data : []);
-        })
-        .catch(() => {
-          setList([]);
-          setError("Failed to load milestones");
-        })
-        .finally(() => setLoading(false));
+      loadMilestones(programId);
     }
   }, [programId]);
   
@@ -275,6 +301,12 @@ function Milestones() {
         </div>
       )}
       
+      {success && (
+        <div className="text-sm text-green-600 mt-2 p-2 bg-green-50 rounded border">
+          {success}
+        </div>
+      )}
+      
       {loading && (
         <div className="text-sm text-muted-foreground mt-2">
           Loading milestones...
@@ -285,8 +317,11 @@ function Milestones() {
         className="mt-3 grid gap-2 md:grid-cols-5"
         onSubmit={async (e) => {
           e.preventDefault();
+          setError(null);
+          setSuccess(null);
+          
           try {
-            await fetch(
+            const response = await fetch(
               "/api/gov/milestones",
               withAuthHeaders({
                 method: "POST",
@@ -300,17 +335,20 @@ function Milestones() {
                 }),
               }),
             );
-            setKey("");
-            setTitle("");
-            setAmount("");
-            // Reload milestones
-            if (programId) {
-              const response = await fetch(`/api/gov/milestones?programId=${programId}`);
-              const data = await response.json();
-              setList(Array.isArray(data) ? data : []);
+            
+            if (response.ok) {
+              setSuccess("Milestone created successfully!");
+              setKey("");
+              setTitle("");
+              setAmount("");
+              // Reload milestones
+              await loadMilestones(programId);
+            } else {
+              const errorData = await response.json();
+              setError(`Failed to create milestone: ${errorData.error || 'Unknown error'}`);
             }
           } catch (err) {
-            setError("Failed to create milestone");
+            setError("Failed to create milestone: Network error");
           }
         }}
       >
@@ -360,15 +398,23 @@ function Milestones() {
       
       {!loading && !error && list.length > 0 && (
         <ul className="mt-3 grid gap-2">
-          {list.map((m) => (
-            <li key={m.id || `milestone-${m.key}`} className="rounded-md border p-3 text-sm">
-              <div className="font-medium">{m.key}</div>
-              <div className="text-muted-foreground">{m.title}</div>
-              <div className="text-muted-foreground">
-                {m.amount} {m.unit}
-              </div>
-            </li>
-          ))}
+          {list.map((m) => {
+            // Handle both data structures
+            const key = m.key || m.code || 'Unknown';
+            const title = m.title || m.formula || 'No title';
+            const amount = m.amount || m.target || 0;
+            const unit = m.unit || 'Unknown';
+            
+            return (
+              <li key={m.id || `milestone-${key}`} className="rounded-md border p-3 text-sm">
+                <div className="font-medium">{key}</div>
+                <div className="text-muted-foreground">{title}</div>
+                <div className="text-muted-foreground">
+                  {amount.toLocaleString()} {unit}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>
@@ -381,6 +427,8 @@ function Release() {
   const [amount, setAmount] = useState("10000");
   const [rail, setRail] = useState("bank");
   const [msg, setMsg] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  
   return (
     <section className="rounded-xl border bg-card p-6 shadow-sm">
       <h2 className="font-semibold">Trigger Release</h2>
@@ -389,20 +437,34 @@ function Release() {
         onSubmit={async (e) => {
           e.preventDefault();
           setMsg(null);
-          const r = await fetch(
-            "/api/gov/release",
-            withAuthHeaders({
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                projectId,
-                milestoneKey,
-                amount: Number(amount),
-                rail,
+          setLoading(true);
+          
+          try {
+            const r = await fetch(
+              "/api/gov/release",
+              withAuthHeaders({
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  projectId,
+                  milestoneKey,
+                  amount: Number(amount),
+                  rail,
+                }),
               }),
-            }),
-          );
-          setMsg(r.ok ? "Queued for bank" : "Error");
+            );
+            
+            if (r.ok) {
+              setMsg("✅ Release queued for bank successfully!");
+            } else {
+              const errorData = await r.json();
+              setMsg(`❌ Error: ${errorData.error || 'Failed to queue release'}`);
+            }
+          } catch (err) {
+            setMsg("❌ Network error. Please try again.");
+          } finally {
+            setLoading(false);
+          }
         }}
       >
         <input
@@ -431,9 +493,19 @@ function Release() {
           <option value="bank">Bank</option>
           <option value="onchain">On-chain (mock)</option>
         </select>
-        <Button type="submit">Queue</Button>
+        <Button type="submit" disabled={loading}>
+          {loading ? "Queuing..." : "Queue"}
+        </Button>
       </form>
-      {msg && <div className="mt-2 text-sm text-muted-foreground">{msg}</div>}
+      {msg && (
+        <div className={`mt-2 text-sm p-3 rounded-md ${
+          msg.includes("✅") 
+            ? "bg-green-50 text-green-700 border border-green-200" 
+            : "bg-red-50 text-red-700 border border-red-200"
+        }`}>
+          {msg}
+        </div>
+      )}
     </section>
   );
 }
@@ -441,6 +513,11 @@ function Release() {
 function Governance() {
   const [projectId, setProjectId] = useState("");
   const [amount, setAmount] = useState("");
+  const [revokeMsg, setRevokeMsg] = useState<string | null>(null);
+  const [clawbackMsg, setClawbackMsg] = useState<string | null>(null);
+  const [revokeLoading, setRevokeLoading] = useState(false);
+  const [clawbackLoading, setClawbackLoading] = useState(false);
+  
   return (
     <section className="rounded-xl border bg-card p-6 shadow-sm">
       <h2 className="font-semibold">Revoke / Clawback</h2>
@@ -452,18 +529,35 @@ function Governance() {
           onChange={(e) => setProjectId(e.target.value)}
         />
         <Button
+          disabled={revokeLoading || !projectId}
           onClick={async () => {
-            await fetch(
-              "/api/gov/revoke",
-              withAuthHeaders({
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ projectId, reason: "policy" }),
-              }),
-            );
+            setRevokeMsg(null);
+            setRevokeLoading(true);
+            
+            try {
+              const response = await fetch(
+                "/api/gov/revoke",
+                withAuthHeaders({
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ projectId, reason: "policy" }),
+                }),
+              );
+              
+              if (response.ok) {
+                setRevokeMsg("✅ Project revoked successfully!");
+              } else {
+                const errorData = await response.json();
+                setRevokeMsg(`❌ Error: ${errorData.error || 'Failed to revoke project'}`);
+              }
+            } catch (err) {
+              setRevokeMsg("❌ Network error. Please try again.");
+            } finally {
+              setRevokeLoading(false);
+            }
           }}
         >
-          Revoke
+          {revokeLoading ? "Revoking..." : "Revoke"}
         </Button>
         <div />
         <input
@@ -473,24 +567,64 @@ function Governance() {
           onChange={(e) => setAmount(e.target.value)}
         />
         <Button
+          disabled={clawbackLoading || !projectId || !amount}
           onClick={async () => {
-            await fetch(
-              "/api/gov/clawback",
-              withAuthHeaders({
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  projectId,
-                  amount: Number(amount),
-                  reason: "violation",
+            setClawbackMsg(null);
+            setClawbackLoading(true);
+            
+            try {
+              const response = await fetch(
+                "/api/gov/clawback",
+                withAuthHeaders({
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    projectId,
+                    amount: Number(amount),
+                    reason: "violation",
+                  }),
                 }),
-              }),
-            );
+              );
+              
+              if (response.ok) {
+                setClawbackMsg("✅ Clawback initiated successfully!");
+              } else {
+                const errorData = await response.json();
+                setClawbackMsg(`❌ Error: ${errorData.error || 'Failed to initiate clawback'}`);
+              }
+            } catch (err) {
+              setClawbackMsg("❌ Network error. Please try again.");
+            } finally {
+              setClawbackLoading(false);
+            }
           }}
         >
-          Clawback
+          {clawbackLoading ? "Processing..." : "Clawback"}
         </Button>
       </div>
+      
+      {(revokeMsg || clawbackMsg) && (
+        <div className="mt-3 space-y-2">
+          {revokeMsg && (
+            <div className={`text-sm p-3 rounded-md ${
+              revokeMsg.includes("✅") 
+                ? "bg-green-50 text-green-700 border border-green-200" 
+                : "bg-red-50 text-red-700 border border-red-200"
+            }`}>
+              {revokeMsg}
+            </div>
+          )}
+          {clawbackMsg && (
+            <div className={`text-sm p-3 rounded-md ${
+              clawbackMsg.includes("✅") 
+                ? "bg-green-50 text-green-700 border border-green-200" 
+                : "bg-red-50 text-red-700 border border-red-200"
+            }`}>
+              {clawbackMsg}
+            </div>
+          )}
+        </div>
+      )}
     </section>
   );
 }
