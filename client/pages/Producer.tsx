@@ -9,12 +9,49 @@ export default function Producer() {
   const [projects, setProjects] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch("/api/gov/programs").then((r) => r.json()).then((ps) => { setPrograms(ps); if (ps[0]) setProgramId(ps[0].id); });
+    fetch("/api/gov/programs")
+      .then((r) => {
+        if (!r.ok) {
+          throw new Error(`HTTP error! status: ${r.status}`);
+        }
+        return r.json();
+      })
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setPrograms(data);
+          if (data[0]) setProgramId(data[0].id);
+        } else {
+          console.error("API returned non-array data:", data);
+          setPrograms([]);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load programs:", error);
+        setPrograms([]);
+      });
   }, []);
 
   useEffect(() => {
     // Load projects after login (OTP-based token present)
-    fetch("/api/producer/projects", withAuthHeaders()).then(r=>r.json()).then(setProjects).catch(()=>{});
+    fetch("/api/producer/projects", withAuthHeaders())
+      .then((r) => {
+        if (!r.ok) {
+          throw new Error(`HTTP error! status: ${r.status}`);
+        }
+        return r.json();
+      })
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setProjects(data);
+        } else {
+          console.error("API returned non-array data:", data);
+          setProjects([]);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load projects:", error);
+        setProjects([]);
+      });
   }, []);
 
   return (

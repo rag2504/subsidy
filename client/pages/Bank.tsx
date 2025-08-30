@@ -7,8 +7,24 @@ export default function Bank() {
   const [queue, setQueue] = useState<any[]>([]);
   const load = () =>
     fetch("/api/bank/queue", withAuthHeaders())
-      .then((r) => r.json())
-      .then(setQueue);
+      .then((r) => {
+        if (!r.ok) {
+          throw new Error(`HTTP error! status: ${r.status}`);
+        }
+        return r.json();
+      })
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setQueue(data);
+        } else {
+          console.error("API returned non-array data:", data);
+          setQueue([]);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load queue:", error);
+        setQueue([]);
+      });
   useEffect(() => {
     if (getToken()) load();
   }, []);

@@ -25,8 +25,24 @@ function Programs() {
   const [programs, setPrograms] = useState<any[]>([]);
   const load = () =>
     fetch("/api/gov/programs")
-      .then((r) => r.json())
-      .then(setPrograms);
+      .then((r) => {
+        if (!r.ok) {
+          throw new Error(`HTTP error! status: ${r.status}`);
+        }
+        return r.json();
+      })
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setPrograms(data);
+        } else {
+          console.error("API returned non-array data:", data);
+          setPrograms([]);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load programs:", error);
+        setPrograms([]);
+      });
   useEffect(() => {
     load();
   }, []);
@@ -73,8 +89,24 @@ function PendingProjects() {
   const [list, setList] = useState<any[]>([]);
   const load = () =>
     fetch("/api/gov/projects?status=pending", withAuthHeaders())
-      .then((r) => r.json())
-      .then(setList);
+      .then((r) => {
+        if (!r.ok) {
+          throw new Error(`HTTP error! status: ${r.status}`);
+        }
+        return r.json();
+      })
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setList(data);
+        } else {
+          console.error("API returned non-array data:", data);
+          setList([]);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load pending projects:", error);
+        setList([]);
+      });
   useEffect(() => {
     if (getToken()) load();
   }, []);
@@ -126,17 +158,47 @@ function Milestones() {
   const [list, setList] = useState<any[]>([]);
   useEffect(() => {
     fetch("/api/gov/programs")
-      .then((r) => r.json())
-      .then((ps) => {
-        setPrograms(ps);
-        if (ps[0]) setProgramId(ps[0].id);
+      .then((r) => {
+        if (!r.ok) {
+          throw new Error(`HTTP error! status: ${r.status}`);
+        }
+        return r.json();
+      })
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setPrograms(data);
+          if (data[0]) setProgramId(data[0].id);
+        } else {
+          console.error("API returned non-array data:", data);
+          setPrograms([]);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load programs:", error);
+        setPrograms([]);
       });
   }, []);
   useEffect(() => {
     if (programId)
       fetch(`/api/gov/milestones?programId=${programId}`)
-        .then((r) => r.json())
-        .then(setList);
+        .then((r) => {
+          if (!r.ok) {
+            throw new Error(`HTTP error! status: ${r.status}`);
+          }
+          return r.json();
+        })
+        .then((data) => {
+          if (Array.isArray(data)) {
+            setList(data);
+          } else {
+            console.error("API returned non-array data:", data);
+            setList([]);
+          }
+        })
+        .catch((error) => {
+          console.error("Failed to load milestones:", error);
+          setList([]);
+        });
   }, [programId]);
   return (
     <section className="rounded-xl border bg-card p-6 shadow-sm">
@@ -163,8 +225,24 @@ function Milestones() {
           setTitle("");
           setAmount("");
           fetch(`/api/gov/milestones?programId=${programId}`)
-            .then((r) => r.json())
-            .then(setList);
+            .then((r) => {
+              if (!r.ok) {
+                throw new Error(`HTTP error! status: ${r.status}`);
+              }
+              return r.json();
+            })
+            .then((data) => {
+              if (Array.isArray(data)) {
+                setList(data);
+              } else {
+                console.error("API returned non-array data:", data);
+                setList([]);
+              }
+            })
+            .catch((error) => {
+              console.error("Failed to load milestones:", error);
+              setList([]);
+            });
         }}
       >
         <select
