@@ -47,17 +47,38 @@ export default function Explorer() {
   const [showProjects, setShowProjects] = useState(false);
 
   useEffect(() => {
+    console.log("Seeding demo data...");
     fetch(apiUrl("/api/seed"), { method: "POST" })
-      .then(() => setQuery(DEMO_PROJECT_ID))
-      .catch(() => setQuery(DEMO_PROJECT_ID));
+      .then((response) => {
+        console.log("Seed response:", response);
+        return response.json();
+      })
+      .then((data) => {
+        console.log("Seed data:", data);
+        setQuery(DEMO_PROJECT_ID);
+      })
+      .catch((error) => {
+        console.error("Seed error:", error);
+        setQuery(DEMO_PROJECT_ID);
+      });
   }, []);
 
   useEffect(() => {
     // Load available projects
+    console.log("Loading available projects...");
     fetch(apiUrl("/api/explorer/projects"))
-      .then(r => r.json())
-      .then(setAvailableProjects)
-      .catch(() => setAvailableProjects([]));
+      .then((r) => {
+        console.log("Projects response:", r);
+        return r.json();
+      })
+      .then((data) => {
+        console.log("Projects data:", data);
+        setAvailableProjects(data);
+      })
+      .catch((error) => {
+        console.error("Projects error:", error);
+        setAvailableProjects([]);
+      });
   }, []);
 
   useEffect(() => {
@@ -66,13 +87,25 @@ export default function Explorer() {
     setRemote(null);
     setLoading(true);
     
+    console.log("Fetching project:", query);
     fetch(apiUrl(`/api/explorer/project/${encodeURIComponent(query)}`))
       .then(async (r) => {
-        if (!r.ok) throw new Error(await r.text());
+        console.log("Project response:", r);
+        if (!r.ok) {
+          const errorText = await r.text();
+          console.error("Project error response:", errorText);
+          throw new Error(errorText);
+        }
         return r.json();
       })
-      .then(setRemote)
-      .catch(() => setError("Project not found"))
+      .then((data) => {
+        console.log("Project data:", data);
+        setRemote(data);
+      })
+      .catch((error) => {
+        console.error("Project fetch error:", error);
+        setError("Project not found");
+      })
       .finally(() => setLoading(false));
   }, [query]);
 
