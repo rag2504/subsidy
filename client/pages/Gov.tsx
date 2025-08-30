@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import AuthGate, { withAuthHeaders } from "@/components/auth/AuthGate";
 import { getToken, getRole, clearToken } from "@/lib/auth";
+import { apiUrl } from "@/lib/api";
 
 export default function Gov() {
   return (
@@ -32,7 +33,7 @@ function Programs() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch("/api/gov/programs");
+      const response = await fetch(apiUrl("/api/gov/programs"));
       
       if (!response.ok) {
         setError(`Failed to load programs: ${response.status}`);
@@ -76,7 +77,7 @@ function Programs() {
           e.preventDefault();
           try {
             await fetch(
-              "/api/gov/programs",
+              apiUrl("/api/gov/programs"),
               withAuthHeaders({
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -137,7 +138,7 @@ function PendingProjects() {
         return;
       }
       
-      const response = await fetch("/api/gov/projects?status=pending", withAuthHeaders());
+      const response = await fetch(apiUrl("/api/gov/projects?status=pending"), withAuthHeaders());
       
       if (!response.ok) {
         if (response.status === 401) {
@@ -208,7 +209,7 @@ function PendingProjects() {
                 onClick={async () => {
                   try {
                     await fetch(
-                      `/api/gov/projects/${p.id}/approve`,
+                      apiUrl(`/api/gov/projects/${p.id}/approve`),
                       withAuthHeaders({ method: "POST" }),
                     );
                     load();
@@ -241,7 +242,7 @@ function Milestones() {
   
   const loadPrograms = async () => {
     try {
-      const response = await fetch("/api/gov/programs");
+      const response = await fetch(apiUrl("/api/gov/programs"));
       if (!response.ok) {
         setError("Failed to load programs");
         setPrograms([]);
@@ -265,7 +266,7 @@ function Milestones() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`/api/gov/milestones?programId=${pid}`);
+      const response = await fetch(apiUrl(`/api/gov/milestones?programId=${pid}`));
       if (!response.ok) {
         setError("Failed to load milestones");
         setList([]);
@@ -322,7 +323,7 @@ function Milestones() {
           
           try {
             const response = await fetch(
-              "/api/gov/milestones",
+              apiUrl("/api/gov/milestones"),
               withAuthHeaders({
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -441,7 +442,7 @@ function Release() {
           
           try {
             const r = await fetch(
-              "/api/gov/release",
+              apiUrl("/api/gov/release"),
               withAuthHeaders({
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -536,7 +537,7 @@ function Governance() {
             
             try {
               const response = await fetch(
-                "/api/gov/revoke",
+                apiUrl("/api/gov/revoke"),
                 withAuthHeaders({
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
@@ -574,7 +575,7 @@ function Governance() {
             
             try {
               const response = await fetch(
-                "/api/gov/clawback",
+                apiUrl("/api/gov/clawback"),
                 withAuthHeaders({
                   method: "POST",
                   headers: { "Content-Type": "application/json" },

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { apiUrl } from "@/lib/api";
 
 type TimelineItem = {
   ts: string;
@@ -46,14 +47,14 @@ export default function Explorer() {
   const [showProjects, setShowProjects] = useState(false);
 
   useEffect(() => {
-    fetch("/api/seed", { method: "POST" })
+    fetch(apiUrl("/api/seed"), { method: "POST" })
       .then(() => setQuery(DEMO_PROJECT_ID))
       .catch(() => setQuery(DEMO_PROJECT_ID));
   }, []);
 
   useEffect(() => {
     // Load available projects
-    fetch("/api/explorer/projects")
+    fetch(apiUrl("/api/explorer/projects"))
       .then(r => r.json())
       .then(setAvailableProjects)
       .catch(() => setAvailableProjects([]));
@@ -65,7 +66,7 @@ export default function Explorer() {
     setRemote(null);
     setLoading(true);
     
-    fetch(`/api/explorer/project/${encodeURIComponent(query)}`)
+    fetch(apiUrl(`/api/explorer/project/${encodeURIComponent(query)}`))
       .then(async (r) => {
         if (!r.ok) throw new Error(await r.text());
         return r.json();

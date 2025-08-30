@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import AuthGate, { withAuthHeaders } from "@/components/auth/AuthGate";
+import { apiUrl } from "@/lib/api";
 
 interface Project {
   id: string;
@@ -26,7 +27,7 @@ export default function Producer() {
 
   useEffect(() => {
     // Load programs
-    fetch("/api/gov/programs")
+    fetch(apiUrl("/api/gov/programs"))
       .then((r) => r.json())
       .then((ps) => {
         setPrograms(ps);
@@ -46,7 +47,7 @@ export default function Producer() {
   const loadMyProjects = async () => {
     try {
       setLoadingProjects(true);
-      const response = await fetch("/api/producer/projects", withAuthHeaders());
+      const response = await fetch(apiUrl("/api/producer/projects"), withAuthHeaders());
       if (response.ok) {
         const data = await response.json();
         setMyProjects(Array.isArray(data) ? data : []);
@@ -135,7 +136,7 @@ export default function Producer() {
                 e.preventDefault();
                 try {
                   const r = await fetch(
-                    "/api/producer/projects",
+                    apiUrl("/api/producer/projects"),
                     withAuthHeaders({
                       method: "POST",
                       headers: { "Content-Type": "application/json" },

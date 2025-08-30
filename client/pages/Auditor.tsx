@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import AuthGate, { withAuthHeaders } from "@/components/auth/AuthGate";
+import { apiUrl } from "@/lib/api";
 
 type Project = {
   id: string;
@@ -43,7 +44,7 @@ export default function Auditor() {
 
   // Load available projects
   useEffect(() => {
-    fetch("/api/auditor/projects", withAuthHeaders())
+    fetch(apiUrl("/api/auditor/projects"), withAuthHeaders())
       .then(r => {
         if (!r.ok) {
           throw new Error(`HTTP ${r.status}: ${r.statusText}`);
@@ -108,7 +109,7 @@ export default function Auditor() {
         setDataHash("");
         setSigner("");
         // Refresh projects to show updated attestations
-        fetch("/api/auditor/projects", withAuthHeaders())
+        fetch(apiUrl("/api/auditor/projects"), withAuthHeaders())
           .then(r => r.json())
           .then(setProjects);
       } else {

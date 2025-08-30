@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { authHeader, clearToken, getRole, setToken, getToken } from "@/lib/auth";
+import { apiUrl } from "@/lib/api";
 
 // Static credentials for restricted roles
 const STATIC_CREDENTIALS = {
@@ -33,7 +34,7 @@ export default function AuthGate({
   // Check if token is valid by making a test API call
   useEffect(() => {
     if (token) {
-      fetch("/api/auth/me", {
+      fetch(apiUrl("/api/auth/me"), {
         headers: { Authorization: `Bearer ${token}` }
       })
       .then(response => {
@@ -106,7 +107,7 @@ export default function AuthGate({
             
             if (email === credentials.email && password === credentials.password) {
               // Use server-side static login
-              const r = await fetch("/api/auth/static-login", {
+              const r = await fetch(apiUrl("/api/auth/static-login"), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password, role: requiredRole }),
@@ -194,7 +195,7 @@ export default function AuthGate({
               }
               
               setStatus(null);
-              const r = await fetch("/api/auth/request-otp", {
+              const r = await fetch(apiUrl("/api/auth/request-otp"), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email }),
@@ -252,7 +253,7 @@ export default function AuthGate({
               e.preventDefault();
               setStatus(null);
               
-              const r = await fetch("/api/auth/verify-otp", {
+              const r = await fetch(apiUrl("/api/auth/verify-otp"), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, otp, role: requiredRole }),
@@ -290,7 +291,7 @@ export default function AuthGate({
               className="text-blue-600 underline text-sm"
               onClick={async () => {
                 setStatus(null);
-                const r = await fetch("/api/auth/request-otp", {
+                const r = await fetch(apiUrl("/api/auth/request-otp"), {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ email }),

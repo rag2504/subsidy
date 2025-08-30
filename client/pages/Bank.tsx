@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import AuthGate, { withAuthHeaders } from "@/components/auth/AuthGate";
+import { apiUrl } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 
 export default function Bank() {
@@ -12,7 +13,7 @@ export default function Bank() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/bank/queue", withAuthHeaders());
+      const response = await fetch(apiUrl("/api/bank/queue"), withAuthHeaders());
       if (!response.ok) {
         if (response.status === 401) {
           setError("Authentication required. Please sign in as a bank user.");
