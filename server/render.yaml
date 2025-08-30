@@ -2,7 +2,7 @@ services:
   - type: web
     name: subsidy-backend
     env: node
-    buildCommand: npm install && npm run build
+    buildCommand: npm run render-build
     startCommand: node dist/server/production.mjs
     plan: free
     envVars:

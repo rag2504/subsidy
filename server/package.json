@@ -6,7 +6,8 @@
   "scripts": {
     "build": "vite build --config vite.config.ts",
     "start": "node dist/server/production.mjs",
-    "dev": "tsx watch index.ts"
+    "dev": "tsx watch index.ts",
+    "render-build": "npm install && npm run build"
   },
   "dependencies": {
     "cors": "^2.8.5",
