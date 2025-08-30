@@ -184,7 +184,7 @@ export const submitAttestation = [
     const dataHash = "0x" + sha256Hex(buf);
 
     // 3) Build typed data and sign (server-side demo)
-    const { chainId } = await provider.getNetwork();
+    const { chainId } = await provider().getNetwork();
     const message = {
       milestoneId: milestoneKey as `0x${string}`,   // use msId (bytes32) in a real app
       value: Number(value),
@@ -197,14 +197,14 @@ export const submitAttestation = [
     );
 
     // 4) Call contract
-    const tx = await contract.connect(auditorWallet as any).attestMilestone(message, signature);
+    const tx = await contract().connect(auditorWallet() as any).attestMilestone(message, signature);
     const receipt = await tx.wait();
 
     // 5) Persist record for Explorer
     const attestations = await getCollection("attestations");
     await attestations.insertOne({
       projectId, milestoneKey, value: Number(value),
-      unit: "kg", dataHash, signer: auditorWallet.address,
+      unit: "kg", dataHash, signer: auditorWallet().address,
       txHash: tx.hash, createdAt: new Date()
     });
 
@@ -239,7 +239,7 @@ export const triggerRelease: RequestHandler = async (req, res) => {
   if (exists) return res.status(409).json({ error: "already released/queued" });
   
   // Call on-chain release
-  const tx = await contract.releasePayment(milestoneKey as `0x${string}`, Number(amount), bankRef || `BANK-${Date.now()}`);
+      const tx = await contract().releasePayment(milestoneKey as `0x${string}`, Number(amount), bankRef || `BANK-${Date.now()}`);
   await tx.wait();
 
   // Persist record
