@@ -2,8 +2,9 @@ services:
   - type: web
     name: subsidy-backend
     env: node
-    buildCommand: cd server && pnpm install && pnpm build
-    startCommand: cd server && node dist/server/production.mjs
+    rootDir: server
+    buildCommand: npm install && npm run build
+    startCommand: node dist/server/production.mjs
     envVars:
       - key: NODE_ENV
         value: production

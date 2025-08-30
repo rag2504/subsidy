@@ -1,6 +1,14 @@
 import type { RequestHandler } from "express";
 import { getCollection } from "../db/mongo";
 import { ObjectId } from "mongodb";
+import multer from "multer";
+import fs from "fs";
+import path from "path";
+import { contract, auditorWallet, provider } from "../web3/contract";
+import { domain, types } from "../web3/typedData";
+import { sha256Hex } from "../utils/hash";
+
+const upload = multer({ dest: path.join(process.cwd(), "uploads") });
 
 function slugify(s: string) {
   return s
@@ -155,67 +163,102 @@ export const listMilestones: RequestHandler = async (req, res) => {
   res.json(list);
 };
 
-export const submitAttestation: RequestHandler = async (req, res) => {
-  const { projectId, milestoneKey, value, unit, dataHash, signer } =
-    req.body as any;
-  if (!projectId || !milestoneKey || value === undefined)
+export const submitAttestation = [
+  upload.single("evidence"),
+  async (req: any, res: any) => {
+    const { projectId, milestoneKey, value, deadline, nonce } = req.body as any;
+    if (!req.file) return res.status(400).json({ error: "evidence file required" });
+
+    // 1) Validate project/milestone as you already do
+    const projects = await getCollection("projects");
+    const project = await projects.findOne({ id: projectId });
+    if (!project) return res.status(404).json({ error: "project not found" });
+    if (project.status !== "approved") return res.status(400).json({ error: "project not approved" });
+    
+    const milestones = await getCollection("milestones");
+    const milestone = await milestones.findOne({ programId: project.program, key: milestoneKey });
+    if (!milestone) return res.status(404).json({ error: "milestone not found" });
+
+    // 2) Compute file hash
+    const buf = fs.readFileSync(req.file.path);
+    const dataHash = "0x" + sha256Hex(buf);
+
+    // 3) Build typed data and sign (server-side demo)
+    const { chainId } = await provider.getNetwork();
+    const message = {
+      milestoneId: milestoneKey as `0x${string}`,   // use msId (bytes32) in a real app
+      value: Number(value),
+      dataHash,
+      deadline: Number(deadline),  // unix seconds
+      nonce: Number(nonce)         // increment per milestone
+    };
+    const signature = await (auditorWallet as any)._signTypedData(
+      domain(chainId, process.env.CONTRACT_ADDRESS!), types, message
+    );
+
+    // 4) Call contract
+    const tx = await contract.connect(auditorWallet as any).attestMilestone(message, signature);
+    const receipt = await tx.wait();
+
+    // 5) Persist record for Explorer
+    const attestations = await getCollection("attestations");
+    await attestations.insertOne({
+      projectId, milestoneKey, value: Number(value),
+      unit: "kg", dataHash, signer: auditorWallet.address,
+      txHash: tx.hash, createdAt: new Date()
+    });
+
+    await logEvent(projectId, "attested", "Auditor Attested (EIP-712)", {
+      value: Number(value), dataHash, txHash: tx.hash
+    });
+
+    // Clean up uploaded file
+    fs.unlinkSync(req.file.path);
+
+    res.json({ ok: true, tx: tx.hash });
+  }
+] as any;
+
+export const triggerRelease: RequestHandler = async (req, res) => {
+  const { projectId, milestoneKey, amount, bankRef } = req.body as any;
+  if (!projectId || !milestoneKey || !amount)
     return res.status(400).json({ error: "missing fields" });
   
-  // Validate project exists and is approved
+  // Validate project and milestone
   const projects = await getCollection("projects");
   const project = await projects.findOne({ id: projectId });
   if (!project) return res.status(404).json({ error: "project not found" });
-  if (project.status !== "approved") return res.status(400).json({ error: "project not approved" });
   
-  // Validate milestone exists
   const milestones = await getCollection("milestones");
   const milestone = await milestones.findOne({ programId: project.program, key: milestoneKey });
   if (!milestone) return res.status(404).json({ error: "milestone not found" });
   
-  const attestations = await getCollection("attestations");
-  const once = await attestations.findOne({ projectId, milestoneKey });
-  if (once) return res.status(409).json({ error: "already attested" });
-  
-  await attestations.insertOne({
-    projectId,
-    milestoneKey,
-    value,
-    unit,
-    dataHash,
-    signer,
-    createdAt: new Date(),
-  });
-  await logEvent(projectId, "attested", "Auditor Attested (EIP-712)", {
-    value,
-    unit,
-    dataHash,
-  });
-  res.json({ ok: true });
-};
-
-export const triggerRelease: RequestHandler = async (req, res) => {
-  const { projectId, milestoneKey, amount, rail } = req.body as any; // rail: 'bank' | 'onchain'
-  if (!projectId || !milestoneKey || !amount)
-    return res.status(400).json({ error: "missing fields" });
+  // Check if already released
   const disb = await getCollection("disbursements");
   const exists = await disb.findOne({ projectId, milestoneKey });
   if (exists) return res.status(409).json({ error: "already released/queued" });
+  
+  // Call on-chain release
+  const tx = await contract.releasePayment(milestoneKey as `0x${string}`, Number(amount), bankRef || `BANK-${Date.now()}`);
+  await tx.wait();
+
+  // Persist record
   const doc = {
     projectId,
     milestoneKey,
     amount: Number(amount),
-    rail: rail || "bank",
-    status: "queued",
+    bankRef: bankRef || `BANK-${Date.now()}`,
+    status: "released",
+    txHash: tx.hash,
     createdAt: new Date(),
   };
-  const { insertedId } = await disb.insertOne(doc);
-  await logEvent(
-    projectId,
-    "release_queued",
-    `Release queued for ${milestoneKey}`,
-    { amount, rail, disbursementId: insertedId.toString() },
-  );
-  res.json({ id: insertedId.toString(), ...doc });
+  await disb.insertOne(doc);
+  
+  await logEvent(projectId, "released", "Payment Released", { 
+    amount, bankRef: doc.bankRef, txHash: tx.hash 
+  });
+  
+  res.json({ ok: true, tx: tx.hash });
 };
 
 export const bankQueue: RequestHandler = async (_req, res) => {
