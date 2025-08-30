@@ -15,24 +15,33 @@ const isProduction = process.env.NODE_ENV === 'production';
 if (isProduction) {
   console.log('🚀 Starting production server...');
   
-  // Check if the standalone server exists
-  const standalonePath = path.join(__dirname, 'dist/server/standalone.mjs');
+  // Use our simple working server
+  const simpleServerPath = path.join(__dirname, 'simple-server.js');
   
-  if (fs.existsSync(standalonePath)) {
-    console.log('✅ Found standalone server, starting...');
-    await import(standalonePath);
+  if (fs.existsSync(simpleServerPath)) {
+    console.log('✅ Found simple server, starting...');
+    const fileUrl = `file://${simpleServerPath.replace(/\\/g, '/')}`;
+    await import(fileUrl);
   } else {
-    console.log('❌ Standalone server not found, trying production server...');
-    const productionPath = path.join(__dirname, 'dist/server/production.mjs');
-    
-    if (fs.existsSync(productionPath)) {
-      await import(productionPath);
-    } else {
-      console.error('❌ No production server found. Please run "npm run build" first.');
-      process.exit(1);
-    }
+    console.error('❌ Simple server not found.');
+    process.exit(1);
   }
 } else {
   console.log('🛠️  Starting development server...');
-  execSync('vite', { stdio: 'inherit' });
+  try {
+    // Try to run vite with npx to bypass version checks
+    execSync('npx --yes vite --force', { stdio: 'inherit' });
+  } catch (error) {
+    console.log('⚠️  Vite failed, using simple server for development...');
+    // Fallback: run the simple server in development mode
+    const simpleServerPath = path.join(__dirname, 'simple-server.js');
+    if (fs.existsSync(simpleServerPath)) {
+      console.log('✅ Using simple server for development...');
+      const fileUrl = `file://${simpleServerPath.replace(/\\/g, '/')}`;
+      await import(fileUrl);
+    } else {
+      console.error('❌ No server available.');
+      process.exit(1);
+    }
+  }
 }

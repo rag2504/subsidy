@@ -12,28 +12,28 @@
   },
   "scripts": {
     "dev": "node start.js",
-    "prod": "NODE_ENV=production node dist/server/production.mjs",
+    "prod": "NODE_ENV=production node simple-server.js",
     "build": "npm run build:client && npm run build:server",
     "build:client": "vite build --config vite.config.client.ts",
     "build:client-only": "vite build --config vite.config.client.ts",
     "build:server": "vite build --config vite.config.server.ts",
-    "start": "NODE_ENV=production node dist/server/standalone.mjs",
+    "start": "NODE_ENV=production node simple-server.js",
     "test": "vitest --run",
     "format.fix": "prettier --write .",
     "typecheck": "tsc"
   },
   "dependencies": {
     "dotenv": "^17.2.1",
-    "express": "^5.1.0",
+    "ethers": "^5.7.2",
+    "express": "^4.18.0",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.542.0",
     "mongodb": "^6.19.0",
-    "nodemailer": "^7.0.5",
-    "zod": "^3.25.76",
-    "ethers": "^5.7.2",
     "multer": "^1.4.5-lts.1",
+    "nodemailer": "^7.0.5",
     "pdfkit": "^0.15.0",
-    "qrcode": "^1.5.3"
+    "qrcode": "^1.5.3",
+    "zod": "^3.25.76"
   },
   "engines": {
     "node": ">=20.18.0",

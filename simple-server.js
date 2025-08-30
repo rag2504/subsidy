@@ -1,6 +1,4 @@
-import "dotenv/config";
 import express from "express";
-import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -8,17 +6,13 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const port = process.env.PORT || 10000;
+const port = process.env.PORT || 8080;
 
 // Basic middleware
-app.use(cors({
-  origin: true,
-  credentials: true
-}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Health check endpoint
+// API routes
 app.get('/api/ping', (req, res) => {
   res.json({ 
     message: 'Server is running', 
@@ -27,7 +21,6 @@ app.get('/api/ping', (req, res) => {
   });
 });
 
-// API info endpoint
 app.get('/api', (req, res) => {
   res.json({ 
     message: "Subsidy API", 
@@ -38,7 +31,7 @@ app.get('/api', (req, res) => {
 });
 
 // Serve static files from the built SPA
-const distPath = path.join(__dirname, "../spa");
+const distPath = path.join(__dirname, "dist/spa");
 app.use(express.static(distPath));
 
 // Handle React Router - serve index.html for all non-API routes
@@ -53,7 +46,7 @@ app.get('/*', (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`🚀 Standalone Subsidy Server running on port ${port}`);
+  console.log(`🚀 Simple Subsidy Server running on port ${port}`);
   console.log(`🔧 API: http://localhost:${port}/api`);
   console.log(`🏥 Health check: http://localhost:${port}/api/ping`);
   console.log(`📱 Frontend: http://localhost:${port}`);
