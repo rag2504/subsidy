@@ -54,8 +54,21 @@ export default function AuthGate({
       <section className="rounded-xl border bg-card p-6 shadow-sm">
         <h2 className="font-semibold">{def.title}</h2>
         <form className="mt-3 grid gap-2 md:grid-cols-3" onSubmit={async (e)=>{e.preventDefault(); setStatus(null); await fetch("/api/dev/seed-users", { method:"POST" }).catch(()=>{}); const r = await fetch("/api/auth/login", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ email: email || def.email, password: otp || def.password }) }); const d = await r.json().catch(()=>null); if(d?.token){ setToken(d.token); location.reload(); } else { setStatus("Login failed"); }}}>
-          <input className="rounded-md border px-3 py-2 text-sm" placeholder="Username (email)" defaultValue={def.email} onChange={(e)=>setEmail(e.target.value)} />
-          <input className="rounded-md border px-3 py-2 text-sm" type="password" placeholder="Password" defaultValue={def.password} onChange={(e)=>setOtp(e.target.value)} />
+          <input 
+            className="rounded-md border px-3 py-2 text-sm bg-white text-black" 
+            placeholder="Username (email)" 
+            defaultValue={def.email} 
+            onChange={(e)=>setEmail(e.target.value)} 
+            style={{ color: 'black', backgroundColor: 'white' }}
+          />
+          <input 
+            className="rounded-md border px-3 py-2 text-sm bg-white text-black" 
+            type="password" 
+            placeholder="Password" 
+            defaultValue={def.password} 
+            onChange={(e)=>setOtp(e.target.value)} 
+            style={{ color: 'black', backgroundColor: 'white' }}
+          />
           <Button type="submit">Login</Button>
         </form>
         {status && <div className="mt-2 text-sm text-destructive">{status}</div>}
@@ -84,17 +97,19 @@ export default function AuthGate({
         }}
       >
         <input
-          className="rounded-md border px-3 py-2 text-sm"
+          className="rounded-md border px-3 py-2 text-sm bg-white text-black"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          style={{ color: 'black', backgroundColor: 'white' }}
         />
         <div className="flex gap-2">
           <input
-            className="w-full rounded-md border px-3 py-2 text-sm"
+            className="w-full rounded-md border px-3 py-2 text-sm bg-white text-black"
             placeholder="OTP"
             value={otp}
             onChange={(e) => setOtp(e.target.value)}
+            style={{ color: 'black', backgroundColor: 'white' }}
           />
           <Button
             type="button"
