@@ -2,6 +2,18 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { authHeader, clearToken, getRole, setToken, getToken } from "@/lib/auth";
 
+// Static credentials for restricted roles
+const STATIC_CREDENTIALS = {
+  gov: { email: "gov@subsidy.gov", password: "gov-secure-2024" },
+  auditor: { email: "auditor@subsidy.gov", password: "audit-secure-2024" },
+  bank: { email: "bank@subsidy.gov", password: "bank-secure-2024" }
+};
+
+// Check if role requires static credentials
+const isRestrictedRole = (role: string) => {
+  return ["gov", "auditor", "bank"].includes(role);
+};
+
 export default function AuthGate({
   requiredRole,
   children,
@@ -10,9 +22,11 @@ export default function AuthGate({
   children: React.ReactNode;
 }) {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [isValidToken, setIsValidToken] = useState<boolean | null>(null);
+  const [showOtpForm, setShowOtpForm] = useState(false);
   const role = getRole();
   const token = getToken();
 
@@ -71,98 +85,244 @@ export default function AuthGate({
     );
   }
 
+  // Static credentials form for restricted roles
+  if (isRestrictedRole(requiredRole)) {
+    return (
+      <section className="rounded-xl border bg-card p-6 shadow-sm max-w-md mx-auto">
+        <h2 className="font-semibold text-center mb-6">Access Restricted Area</h2>
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
+          <p className="text-sm text-amber-800">
+            <strong>⚠️ Restricted Access:</strong> This area requires authorized credentials.
+          </p>
+        </div>
+        
+        <form
+          className="space-y-4"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setStatus(null);
+            
+            const credentials = STATIC_CREDENTIALS[requiredRole as keyof typeof STATIC_CREDENTIALS];
+            
+            if (email === credentials.email && password === credentials.password) {
+              // Use server-side static login
+              const r = await fetch("/api/auth/static-login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, password, role: requiredRole }),
+              });
+              const data = await r.json();
+              
+              if (r.ok && data.token) {
+                setToken(data.token);
+                setStatus("Access granted");
+                location.reload();
+              } else {
+                setStatus("Invalid credentials");
+              }
+            } else {
+              setStatus("Invalid credentials");
+            }
+          }}
+        >
+          <div>
+            <label className="block text-sm font-medium mb-1">Email</label>
+            <input
+              className="w-full rounded-md border px-3 py-2 text-sm"
+              placeholder="Enter authorized email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-1">Password</label>
+            <input
+              type="password"
+              className="w-full rounded-md border px-3 py-2 text-sm"
+              placeholder="Enter password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+          
+          <Button type="submit" className="w-full">
+            Access {requiredRole.toUpperCase()} Dashboard
+          </Button>
+        </form>
+        
+        {status && (
+          <div className={`mt-3 text-sm p-2 rounded-md ${
+            status === "Access granted" 
+              ? "bg-green-50 text-green-700 border border-green-200" 
+              : "bg-red-50 text-red-700 border border-red-200"
+          }`}>
+            {status}
+          </div>
+        )}
+        
+        <div className="mt-4 text-xs text-muted-foreground text-center">
+          This area is restricted to authorized personnel only.
+        </div>
+      </section>
+    );
+  }
+
+  // OTP-based authentication for producers
   return (
-    <section className="rounded-xl border bg-card p-6 shadow-sm">
-      <h2 className="font-semibold">Sign in as {requiredRole}</h2>
+    <section className="rounded-xl border bg-card p-6 shadow-sm max-w-md mx-auto">
+      <h2 className="font-semibold text-center mb-6">Producer Authentication</h2>
       
-             {/* Debug info */}
-       <div className="mb-4 p-2 bg-gray-50 rounded text-xs">
-         <div>Debug: Token present: {token ? "Yes" : "No"}</div>
-         <div>Debug: Token valid: {isValidToken === null ? "Checking..." : isValidToken ? "Yes" : "No"}</div>
-         <div>Debug: Current role: {role || "None"}</div>
-         <div>Debug: Required role: {requiredRole}</div>
-         <button
-           className="text-blue-600 underline mt-2 block"
-           onClick={() => {
-             clearToken();
-             location.reload();
-           }}
-         >
-           Clear token & reload
-         </button>
-       </div>
-      <form
-        className="mt-3 grid gap-2 md:grid-cols-3"
-        onSubmit={async (e) => {
-          e.preventDefault();
-        }}
-      >
-        <input
-          className="rounded-md border px-3 py-2 text-sm"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <div className="flex gap-2">
-          <input
-            className="w-full rounded-md border px-3 py-2 text-sm"
-            placeholder="OTP"
-            value={otp}
-            onChange={(e) => setOtp(e.target.value)}
-          />
-          <Button
-            type="button"
-            onClick={async () => {
+      {!showOtpForm ? (
+        // Initial sign up/login form
+        <div className="space-y-4">
+          <div className="text-center mb-4">
+            <p className="text-sm text-muted-foreground">
+              Welcome to the Producer Portal. Please sign in or create an account to continue.
+            </p>
+          </div>
+          
+          <form
+            className="space-y-4"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!email) {
+                setStatus("Please enter your email address");
+                return;
+              }
+              
               setStatus(null);
               const r = await fetch("/api/auth/request-otp", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email }),
               });
-              const data = await r.json().catch(() => ({}) as any);
+              const data = await r.json().catch(() => ({}));
+              
               if (r.ok) {
+                setShowOtpForm(true);
                 setStatus(
                   data.devOtp
                     ? `OTP sent (Dev OTP: ${data.devOtp})`
-                    : "OTP sent",
+                    : "OTP sent to your email",
                 );
-                if ((data as any).devOtp) setOtp((data as any).devOtp);
+                if (data.devOtp) setOtp(data.devOtp);
               } else {
-                setStatus("Failed to send OTP");
+                setStatus("Failed to send OTP. Please try again.");
               }
             }}
           >
-            Send OTP
-          </Button>
+            <div>
+              <label className="block text-sm font-medium mb-1">Email Address</label>
+              <input
+                className="w-full rounded-md border px-3 py-2 text-sm"
+                placeholder="Enter your email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            
+            <Button type="submit" className="w-full">
+              Continue with Email
+            </Button>
+          </form>
         </div>
-        <Button
-          type="button"
-          onClick={async () => {
-            setStatus(null);
-            const r = await fetch("/api/auth/verify-otp", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ email, otp, role: requiredRole }),
-            });
-            const data = await r.json().catch(() => null);
-            if (data?.token) {
-              setToken(data.token);
-              setStatus("Signed in");
-              location.reload();
-            } else {
-              setStatus("Invalid OTP");
-            }
-          }}
-        >
-          Verify & Sign in
-        </Button>
-      </form>
-      {status && (
-        <div className="mt-2 text-sm text-muted-foreground">{status}</div>
+      ) : (
+        // OTP verification form
+        <div className="space-y-4">
+          <div className="text-center mb-4">
+            <p className="text-sm text-muted-foreground">
+              We've sent a verification code to <strong>{email}</strong>
+            </p>
+            <button
+              className="text-blue-600 underline text-sm mt-2"
+              onClick={() => setShowOtpForm(false)}
+            >
+              Use different email
+            </button>
+          </div>
+          
+          <form
+            className="space-y-4"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setStatus(null);
+              
+              const r = await fetch("/api/auth/verify-otp", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, otp, role: requiredRole }),
+              });
+              const data = await r.json().catch(() => null);
+              
+              if (data?.token) {
+                setToken(data.token);
+                setStatus("Successfully signed in!");
+                setTimeout(() => location.reload(), 1000);
+              } else {
+                setStatus("Invalid OTP. Please try again.");
+              }
+            }}
+          >
+            <div>
+              <label className="block text-sm font-medium mb-1">Verification Code</label>
+              <input
+                className="w-full rounded-md border px-3 py-2 text-sm text-center text-lg tracking-widest"
+                placeholder="000000"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                maxLength={6}
+                required
+              />
+            </div>
+            
+            <Button type="submit" className="w-full">
+              Verify & Sign In
+            </Button>
+          </form>
+          
+          <div className="text-center">
+            <button
+              className="text-blue-600 underline text-sm"
+              onClick={async () => {
+                setStatus(null);
+                const r = await fetch("/api/auth/request-otp", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ email }),
+                });
+                const data = await r.json().catch(() => ({}));
+                
+                if (r.ok) {
+                  setStatus("New OTP sent");
+                  if (data.devOtp) setOtp(data.devOtp);
+                } else {
+                  setStatus("Failed to resend OTP");
+                }
+              }}
+            >
+              Resend code
+            </button>
+          </div>
+        </div>
       )}
-      <div className="mt-3 text-xs text-muted-foreground">
-        We use email OTP and JWT. After sign-in, your requests will include
-        Authorization headers automatically.
+      
+      {status && (
+        <div className={`mt-3 text-sm p-2 rounded-md ${
+          status.includes("Successfully") || status.includes("sent")
+            ? "bg-green-50 text-green-700 border border-green-200" 
+            : "bg-red-50 text-red-700 border border-red-200"
+        }`}>
+          {status}
+        </div>
+      )}
+      
+      <div className="mt-4 text-xs text-muted-foreground text-center">
+        Secure authentication via email OTP. Your data is protected.
       </div>
     </section>
   );

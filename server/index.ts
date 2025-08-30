@@ -2,7 +2,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { handleDemo } from "./routes/demo";
-import { requestOtp, verifyOtp, me } from "./routes/auth";
+import { requestOtp, verifyOtp, me, staticLogin } from "./routes/auth";
 import { createOrder, webhook } from "./routes/cashfree";
 import { seedDemo } from "./routes/seed";
 import { getProjectTimeline, listAllProjects } from "./routes/explorer";
@@ -44,6 +44,7 @@ export function createServer() {
   // Auth OTP + JWT
   app.post("/api/auth/request-otp", requestOtp);
   app.post("/api/auth/verify-otp", verifyOtp);
+  app.post("/api/auth/static-login", staticLogin);
   app.get("/api/auth/me", me);
 
   // Cashfree payment gateway
