@@ -91,39 +91,21 @@ export default function Auditor() {
     setMsg(null);
 
     try {
-<<<<<<< HEAD
-             const response = await fetch(
-         apiUrl("/api/auditor/attest"),
-         withAuthHeaders({
-           method: "POST",
-           headers: { "Content-Type": "application/json" },
-           body: JSON.stringify({
-             projectId: selectedProject.id,
-             milestoneKey: selectedMilestone.key,
-             value: Number(value),
-             unit,
-             dataHash,
-             signer,
-           }),
-         }),
-       );
-=======
-      const formData = new FormData();
-      formData.append("projectId", selectedProject.id);
-      formData.append("milestoneKey", selectedMilestone.key);
-      formData.append("value", value);
-      formData.append("deadline", deadline);
-      formData.append("nonce", nonce);
-      formData.append("evidence", evidenceFile);
-
       const response = await fetch(
-        "/api/auditor/attest",
+        apiUrl("/api/auditor/attest"),
         withAuthHeaders({
           method: "POST",
-          body: formData,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            projectId: selectedProject.id,
+            milestoneKey: selectedMilestone.key,
+            value: Number(value),
+            unit,
+            dataHash,
+            signer,
+          }),
         }),
       );
->>>>>>> 8f0913a83054a7435106ae98ecaa6b461212b926
 
       const data = await response.json();
       
