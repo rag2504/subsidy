@@ -2,7 +2,7 @@ services:
   - type: web
     name: subsidy-backend
     env: node
-    buildCommand: npm run render-build
+    buildCommand: chmod +x build-simple.sh && ./build-simple.sh
     startCommand: node dist/server/production.mjs
     plan: free
     envVars:
