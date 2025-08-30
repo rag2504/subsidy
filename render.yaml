@@ -2,8 +2,7 @@ services:
   - type: web
     name: subsidy-backend
     env: node
-    rootDir: server
-    buildCommand: npm install && vite build --config vite.config.ts
+    buildCommand: chmod +x build-server.sh && ./build-server.sh
     startCommand: node dist/server/production.mjs
     plan: free
     envVars:
