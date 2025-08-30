@@ -24,4 +24,20 @@ dist-ssr
 *.sw?
 
 .config/
-!.env
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Uploads and temporary files
+uploads/
+temp/
+*.tmp
+
+# Contract artifacts (will be generated)
+contracts/artifacts/
+contracts/cache/
+contracts/typechain-types/
+
+# Hardhat files
+.hardhat/

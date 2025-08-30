@@ -35,8 +35,9 @@ export default function Auditor() {
   const [selectedMilestone, setSelectedMilestone] = useState<Milestone | null>(null);
   const [value, setValue] = useState("");
   const [unit, setUnit] = useState("");
-  const [dataHash, setDataHash] = useState("");
-  const [signer, setSigner] = useState("");
+  const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+  const [deadline, setDeadline] = useState("");
+  const [nonce, setNonce] = useState("1");
   const [msg, setMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [projectsLoading, setProjectsLoading] = useState(true);
@@ -72,10 +73,16 @@ export default function Auditor() {
     }
   }, [selectedMilestone]);
 
+  // Set default deadline (1 hour from now)
+  useEffect(() => {
+    const defaultDeadline = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
+    setDeadline(defaultDeadline.toString());
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedProject || !selectedMilestone) {
-      setMsg("Please select a project and milestone");
+    if (!selectedProject || !selectedMilestone || !evidenceFile) {
+      setMsg("Please select a project, milestone, and evidence file");
       return;
     }
 
@@ -83,30 +90,30 @@ export default function Auditor() {
     setMsg(null);
 
     try {
+      const formData = new FormData();
+      formData.append("projectId", selectedProject.id);
+      formData.append("milestoneKey", selectedMilestone.key);
+      formData.append("value", value);
+      formData.append("deadline", deadline);
+      formData.append("nonce", nonce);
+      formData.append("evidence", evidenceFile);
+
       const response = await fetch(
         "/api/auditor/attest",
         withAuthHeaders({
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            projectId: selectedProject.id,
-            milestoneKey: selectedMilestone.key,
-            value: Number(value),
-            unit,
-            dataHash,
-            signer,
-          }),
+          body: formData,
         }),
       );
 
       const data = await response.json();
       
       if (response.ok) {
-        setMsg("✅ Attestation submitted successfully!");
+        setMsg(`✅ Attestation submitted successfully! Transaction: ${data.tx}`);
         // Clear form
         setValue("");
-        setDataHash("");
-        setSigner("");
+        setEvidenceFile(null);
+        setNonce((prev) => (parseInt(prev) + 1).toString());
         // Refresh projects to show updated attestations
         fetch("/api/auditor/projects", withAuthHeaders())
           .then(r => r.json())
@@ -221,8 +228,7 @@ export default function Auditor() {
                           setSelectedMilestone(milestone);
                           setValue("");
                           setUnit(milestone.unit);
-                          setDataHash("");
-                          setSigner("");
+                          setEvidenceFile(null);
                         }
                       }}
                     >
@@ -287,23 +293,37 @@ export default function Auditor() {
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Data Hash *</label>
+                    <label className="text-sm font-medium">Evidence File *</label>
                     <input
                       className="w-full rounded-md border px-3 py-2 text-sm mt-1"
-                      placeholder="0x..."
-                      value={dataHash}
-                      onChange={(e) => setDataHash(e.target.value)}
+                      type="file"
+                      onChange={(e) => setEvidenceFile(e.target.files?.[0] || null)}
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Upload evidence file (PDF, image, etc.)
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Deadline (Unix timestamp)</label>
+                    <input
+                      className="w-full rounded-md border px-3 py-2 text-sm mt-1"
+                      placeholder="Deadline"
+                      value={deadline}
+                      onChange={(e) => setDeadline(e.target.value)}
+                      type="number"
                       required
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Signer (email)</label>
+                    <label className="text-sm font-medium">Nonce</label>
                     <input
                       className="w-full rounded-md border px-3 py-2 text-sm mt-1"
-                      placeholder="auditor@example.com"
-                      value={signer}
-                      onChange={(e) => setSigner(e.target.value)}
-                      type="email"
+                      placeholder="Nonce"
+                      value={nonce}
+                      onChange={(e) => setNonce(e.target.value)}
+                      type="number"
+                      required
                     />
                   </div>
                 </div>
