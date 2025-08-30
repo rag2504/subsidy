@@ -1,5 +1,5 @@
 {
-  "buildCommand": "pnpm build:client",
+  "buildCommand": "npm run build:client",
   "outputDirectory": "dist/spa",
   "framework": "vite",
   "rewrites": [
