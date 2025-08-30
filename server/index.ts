@@ -30,9 +30,7 @@ export function createServer() {
 
   // Middleware
   app.use(cors({
-    origin: process.env.NODE_ENV === 'production' 
-      ? [process.env.FRONTEND_URL || 'https://your-frontend-domain.vercel.app', 'https://subsidy-oa4j.onrender.com']
-      : true,
+    origin: true, // Allow all origins for now
     credentials: true
   }));
   app.use(express.json());

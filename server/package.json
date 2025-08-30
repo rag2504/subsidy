@@ -2,7 +2,7 @@
   "name": "subsidy-backend",
   "version": "1.0.0",
   "type": "module",
-  "main": "dist/server/node-build.mjs",
+  "main": "dist/server/production.mjs",
   "scripts": {
     "build": "vite build --config vite.config.ts",
     "start": "node dist/server/node-build.mjs",
