@@ -30,11 +30,23 @@ export function createServer() {
 
   // Middleware
   app.use(cors({
-    origin: true, // Allow all origins for now
-    credentials: true
+    origin: [
+      'https://subsidy-iota.vercel.app',
+      'https://subsidy-git-main-rags-projects-3508ec91.vercel.app',
+      'http://localhost:8080',
+      'http://localhost:3000',
+      'http://127.0.0.1:8080',
+      'http://127.0.0.1:3000'
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
   }));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+
+  // Handle CORS preflight requests
+  app.options('*', cors());
 
   // Example API routes
   app.get("/api", (_req, res) => {
